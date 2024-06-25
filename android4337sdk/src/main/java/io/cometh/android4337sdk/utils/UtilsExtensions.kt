@@ -3,6 +3,7 @@ package io.cometh.android4337sdk.utils
 import org.web3j.abi.FunctionEncoder
 import org.web3j.abi.datatypes.Address
 import org.web3j.abi.datatypes.Function
+import org.web3j.crypto.Keys
 import org.web3j.crypto.Sign.SignatureData
 import org.web3j.utils.Numeric
 import java.math.BigInteger
@@ -19,4 +20,5 @@ fun String.hexStringToBigInt(): BigInteger = Numeric.toBigInt(this)
 fun String.hexStringToByteArray(): ByteArray = Numeric.hexStringToByteArray(this)
 fun Function.encode(): ByteArray = FunctionEncoder.encode(this).hexStringToByteArray()
 fun String.removeOx(): String = removePrefix("0x")
+fun ByteArray.toChecksumHex(): String = Keys.toChecksumAddress(toHex())
 

@@ -1,5 +1,6 @@
 package io.cometh.android4337sdk.web3j
 
+import io.cometh.android4337sdk.utils.toChecksumHex
 import org.web3j.crypto.Hash
 import org.web3j.utils.Numeric
 
@@ -11,6 +12,6 @@ object Create2 {
         val data = byteArrayOf(0xff.toByte()) + senderBytes + saltBytes + initCodeHashBytes
         val hash = Hash.sha3(data)
         val addressBytes = hash.copyOfRange(12, 32)
-        return Numeric.toHexString(addressBytes)
+        return addressBytes.toChecksumHex()
     }
 }

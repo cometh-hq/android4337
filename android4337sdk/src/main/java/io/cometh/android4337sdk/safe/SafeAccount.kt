@@ -17,7 +17,7 @@ import io.cometh.android4337sdk.utils.toAddress
 import io.cometh.android4337sdk.utils.toHex
 import io.cometh.android4337sdk.utils.toHexNoPrefix
 import io.cometh.android4337sdk.web3j.Create2
-import io.cometh.android4337sdk.web3j.Sign2
+import io.cometh.android4337sdk.web3j.Sign
 import org.web3j.abi.FunctionEncoder
 import org.web3j.abi.FunctionReturnDecoder
 import org.web3j.abi.TypeReference
@@ -180,7 +180,7 @@ class SafeAccount private constructor(
             validUntil.toHex(),
             entryPointAddress
         )
-        val signatureData = Sign2.signTypedData(json, credentials.ecKeyPair)
+        val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
         val validAfterBytes = Numeric.toBytesPadded(validAfter, 6)
         val validUntilBytes = Numeric.toBytesPadded(validUntil, 6)
         val signature = "0x${validAfterBytes.toHexNoPrefix()}${validUntilBytes.toHexNoPrefix()}${signatureData.toHexNoPrefix()}"

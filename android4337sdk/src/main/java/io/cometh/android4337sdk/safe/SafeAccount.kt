@@ -103,7 +103,6 @@ class SafeAccount private constructor(
             config: SafeConfig,
             web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
         ): SafeAccount {
-            //todo create async version of this
             val predictedAddress = predictAddress(
                 owner = credentials.address,
                 web3jTransactionManager = web3jTransactionManager,

@@ -11,10 +11,8 @@ import org.web3j.protocol.core.Response
 import org.web3j.utils.Numeric
 import java.io.IOException
 import java.math.BigInteger
-import java.util.stream.Collectors
 
 
-/** eth_feeHistory.  */
 class EthFeeHistory : Response<EthFeeHistory.FeeHistory?>() {
     @JsonDeserialize(using = ResponseDeserialiser::class)
     override fun setResult(result: FeeHistory?) {
@@ -56,17 +54,7 @@ class EthFeeHistory : Response<EthFeeHistory.FeeHistory?>() {
         }
 
         fun getReward(): List<List<BigInteger>> {
-            return rewardRaw!!.stream()
-                .map { rewardPercentile: List<String> ->
-                    rewardPercentile.stream()
-                        .map { value: String? ->
-                            Numeric.decodeQuantity(
-                                value
-                            )
-                        }
-                        .collect(Collectors.toList())
-                }
-                .collect(Collectors.toList())
+            return rewardRaw!!.map { list -> list.map { value -> Numeric.decodeQuantity(value) } }
         }
 
         fun setReward(reward: List<List<String>>?) {
@@ -74,11 +62,7 @@ class EthFeeHistory : Response<EthFeeHistory.FeeHistory?>() {
         }
 
         fun getBaseFeePerGas(): List<BigInteger> {
-            return baseFeePerGasRaw!!.stream().map { value: String? ->
-                Numeric.decodeQuantity(
-                    value
-                )
-            }.collect(Collectors.toList())
+            return baseFeePerGasRaw!!.map { value -> Numeric.decodeQuantity(value) }
         }
 
         fun setBaseFeePerGas(baseFeePerGas: List<String>?) {
@@ -86,48 +70,26 @@ class EthFeeHistory : Response<EthFeeHistory.FeeHistory?>() {
         }
 
         override fun equals(o: Any?): Boolean {
-            if (this === o) {
-                return true
-            }
-            if (o !is FeeHistory) {
-                return false
-            }
-
+            if (this === o) return true
+            if (o !is FeeHistory) return false
             val feeHistory = o
-
-            if (if (oldestBlockRaw != null
-                ) oldestBlockRaw != feeHistory.oldestBlockRaw
-                else feeHistory.oldestBlockRaw != null
+            if (if (oldestBlockRaw != null) oldestBlockRaw != feeHistory.oldestBlockRaw else feeHistory.oldestBlockRaw != null) {
+                return false
+            }
+            if (if (rewardRaw != null) rewardRaw != feeHistory.rewardRaw else feeHistory.rewardRaw != null) {
+                return false
+            }
+            if (if (baseFeePerGasRaw != null) baseFeePerGasRaw != feeHistory.baseFeePerGasRaw else feeHistory.baseFeePerGasRaw != null
             ) {
                 return false
             }
-
-            if (if (rewardRaw != null
-                ) rewardRaw != feeHistory.rewardRaw
-                else feeHistory.rewardRaw != null
-            ) {
-                return false
-            }
-
-            if (if (baseFeePerGasRaw != null
-                ) baseFeePerGasRaw != feeHistory.baseFeePerGasRaw
-                else feeHistory.baseFeePerGasRaw != null
-            ) {
-                return false
-            }
-
-            return if (gasUsedRatio != null
-            ) gasUsedRatio == feeHistory.gasUsedRatio else feeHistory.gasUsedRatio == null
+            return if (gasUsedRatio != null) gasUsedRatio == feeHistory.gasUsedRatio else feeHistory.gasUsedRatio == null
         }
 
         override fun hashCode(): Int {
             var result = if (oldestBlockRaw != null) oldestBlockRaw.hashCode() else 0
             result = 31 * result + (if (rewardRaw != null) rewardRaw.hashCode() else 0)
-            result = (
-                    31 * result
-                            + (if (baseFeePerGasRaw != null
-                    ) baseFeePerGasRaw.hashCode()
-                    else 0))
+            result = (31 * result + (if (baseFeePerGasRaw != null) baseFeePerGasRaw.hashCode() else 0))
             result = 31 * result + (if (gasUsedRatio != null) gasUsedRatio.hashCode() else 0)
             return result
         }

@@ -21,4 +21,5 @@ fun String.hexStringToByteArray(): ByteArray = Numeric.hexStringToByteArray(this
 fun Function.encode(): ByteArray = FunctionEncoder.encode(this).hexStringToByteArray()
 fun String.removeOx(): String = removePrefix("0x")
 fun ByteArray.toChecksumHex(): String = Keys.toChecksumAddress(toHex())
+fun BigInteger.toHexNoPrefix(): String = Numeric.toHexStringNoPrefix(this.toByteArray())
 

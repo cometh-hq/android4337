@@ -36,11 +36,6 @@ abstract class SmartAccount(
         entryPointAddress.requireHexAddress()
     }
 
-    fun isDeployed(): Boolean {
-        val result = web3.ethGetCode(accountAddress, DefaultBlockParameterName.LATEST).send()
-        return result.code != "0x"
-    }
-
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
     fun sendTransaction(to: String, value: BigInteger, data: String): String {
@@ -58,6 +53,7 @@ abstract class SmartAccount(
     }
 
     @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
     fun prepareUserOperation(to: String, value: BigInteger, data: String): UserOperation {
         val nonce = getNonce()
         val callData = getCallData(to.toAddress(), value, data.hexStringToByteArray())
@@ -117,6 +113,16 @@ abstract class SmartAccount(
         val nonce = entryPointContract.getNonce(accountAddress)
             ?: throw SmartAccountException("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
         return nonce
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
+    fun isDeployed(): Boolean {
+        val result = web3.ethGetCode(accountAddress, DefaultBlockParameterName.LATEST).send()
+        if (result.hasError()) {
+            throw SmartAccountException("Cannot get code for account address ($accountAddress), code: ${result.error!!.code} ${result.error.message}")
+        }
+        return result.code != "0x"
     }
 
     abstract fun signOperation(userOperation: UserOperation, entryPointAddress: String): ByteArray

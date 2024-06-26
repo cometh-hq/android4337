@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "android-4337-sdk"
+rootProject.name = "android4337"
 include(":example")
-include(":android4337sdk")
+include(":android4337")

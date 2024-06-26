@@ -1,5 +1,6 @@
 package io.cometh.android4337sdk.paymaster
 
+import io.cometh.android4337sdk.UserOperation
 import io.cometh.android4337sdk.bundler.DUMMY_SIGNATURE
 import io.cometh.android4337sdk.toEncodedMap
 import org.web3j.protocol.core.Request
@@ -12,7 +13,7 @@ class PaymasterClient(
     private val web3jService = HttpService(paymasterUrl)
 
     fun pmSponsorUserOperation(
-        userOperation: io.cometh.android4337sdk.UserOperation,
+        userOperation: UserOperation,
         entryPoint: String
     ): Request<Any, SponsorUserOperationResponse> {
         val data = userOperation.toEncodedMap().toMutableMap()

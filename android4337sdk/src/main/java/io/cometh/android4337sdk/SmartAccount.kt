@@ -59,9 +59,7 @@ abstract class SmartAccount(
 
     @WorkerThread
     fun prepareUserOperation(to: String, value: BigInteger, data: String): UserOperation {
-        val entryPointContract = EntryPointContract(transactionManager, entryPointAddress)
-        val nonce = entryPointContract.getNonce(accountAddress)
-            ?: throw SmartAccountException("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
+        val nonce = getNonce()
         val callData = getCallData(to.toAddress(), value, data.hexStringToByteArray())
         val initCode = if (isDeployed()) EMPTY_BYTE_ARRAY else getInitCode()
         val userOperation = UserOperation(
@@ -110,6 +108,15 @@ abstract class SmartAccount(
         }
 
         return userOperation
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
+    fun getNonce(): BigInteger {
+        val entryPointContract = EntryPointContract(transactionManager, entryPointAddress)
+        val nonce = entryPointContract.getNonce(accountAddress)
+            ?: throw SmartAccountException("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
+        return nonce
     }
 
     abstract fun signOperation(userOperation: UserOperation, entryPointAddress: String): ByteArray

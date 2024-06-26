@@ -95,7 +95,6 @@ class SafeAccountTest {
 
     @Test
     fun getInitCode() {
-        every { transactionManager.sendCall(any(), any(), any()) } returns TestsData.proxyCode
         val safeAccount2 = SafeAccount.fromAddress(
             TestsData.account2SafeAddress,
             TestsData.account2Credentials,
@@ -157,8 +156,25 @@ class SafeAccountTest {
         )
 
         val signature = safeAccount2.signOperation(userOperation, ENTRY_POINT_ADDRESS)
-        val expected = "0x000000000000000000000000a5927f1a1d8783d9d7033abf5f1883582525a3558055b46a9425c5627a1a83d460d64f361379e3aa710d74b3c4763288598f373c866263c4a45394908c74a6d31c"
+        val expected =
+            "0x000000000000000000000000a5927f1a1d8783d9d7033abf5f1883582525a3558055b46a9425c5627a1a83d460d64f361379e3aa710d74b3c4763288598f373c866263c4a45394908c74a6d31c"
         assertEquals(expected, signature.toHex())
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun fromAddress() {
+        SafeAccount.fromAddress(
+            "wrong_address",
+            TestsData.account1Credentials,
+            bundlerClient,
+            gasPriceProvider,
+            entryPointAddress,
+            web3j,
+            paymasterClient,
+            chainId,
+            safeConfig,
+        )
+    }
+
 
 }

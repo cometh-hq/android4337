@@ -12,7 +12,7 @@ import org.web3j.abi.datatypes.Address
 import org.web3j.crypto.Credentials
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
-import org.web3j.tx.RawTransactionManager
+import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
 
@@ -27,10 +27,9 @@ abstract class SmartAccount(
     protected val entryPointAddress: String,
     protected val web3: Web3j,
     protected val paymasterClient: PaymasterClient? = null,
-    val accountAddress: String
+    val accountAddress: String,
+    protected val transactionManager: TransactionManager,
 ) {
-
-    private val transactionManager = RawTransactionManager(web3, credentials)
 
     init {
         accountAddress.requireHexAddress()

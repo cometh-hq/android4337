@@ -48,7 +48,7 @@ class SafeAccount private constructor(
     val safeAddress: String,
     private val chainId: Int,
     private val config: SafeConfig,
-    private val web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+    transactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
 ) : SmartAccount(
     credentials,
     bundlerClient,
@@ -57,6 +57,7 @@ class SafeAccount private constructor(
     web3j,
     paymasterClient,
     safeAddress,
+    transactionManager
 ) {
 
     init {
@@ -192,7 +193,7 @@ class SafeAccount private constructor(
         val outputParams = listOf(object : TypeReference<DynamicArray<Address>>() {})
         val function = Function("getOwners", inputParams, outputParams)
         val encodedFunction = FunctionEncoder.encode(function)
-        val value = web3jTransactionManager.sendCall(
+        val value = transactionManager.sendCall(
             accountAddress,
             encodedFunction,
             DefaultBlockParameterName.LATEST

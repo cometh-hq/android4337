@@ -4,10 +4,12 @@ import androidx.annotation.WorkerThread
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
 import io.cometh.android4337.utils.requireHex
 import io.cometh.android4337.utils.requireHexAddress
 import io.cometh.android4337.utils.toAddress
+import io.cometh.android4337.utils.toHex
 import org.web3j.abi.datatypes.Address
 import org.web3j.crypto.Credentials
 import org.web3j.protocol.Web3j
@@ -43,7 +45,7 @@ abstract class SmartAccount(
         to.requireHexAddress()
 
         val userOperation = prepareUserOperation(to, value, data).apply {
-            signature = signOperation(this, entryPointAddress)
+            signature = signOperation(this, entryPointAddress).toHex()
         }
         val result = bundlerClient.ethSendUserOperation(userOperation, entryPointAddress).send()
         if (result.hasError()) {
@@ -60,21 +62,21 @@ abstract class SmartAccount(
         val initCode = if (isDeployed()) EMPTY_BYTE_ARRAY else getInitCode()
         val userOperation = UserOperation(
             sender = accountAddress,
-            nonce = nonce,
-            initCode = initCode,
-            callData = callData,
-            callGasLimit = BigInteger.ZERO,
-            verificationGasLimit = BigInteger.ZERO,
-            preVerificationGas = BigInteger.ZERO,
-            maxFeePerGas = BigInteger.ZERO,
-            maxPriorityFeePerGas = BigInteger.ZERO,
-            paymasterAndData = EMPTY_BYTE_ARRAY
+            nonce = nonce.toHex(),
+            initCode = initCode.toHex(),
+            callData = callData.toHex(),
+            callGasLimit = "0x0",
+            verificationGasLimit = "0x0",
+            preVerificationGas = "0x0",
+            maxFeePerGas = "0x0",
+            maxPriorityFeePerGas = "0x0",
+            paymasterAndData = "0x"
         )
 
         gasPriceProvider.getGasPrice().let { gasPrice ->
             userOperation.apply {
-                maxFeePerGas = gasPrice.maxFeePerGas
-                maxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas
+                maxFeePerGas = gasPrice.maxFeePerGas.toHex()
+                maxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas.toHex()
             }
         }
 
@@ -85,10 +87,10 @@ abstract class SmartAccount(
             }
             userOperation.apply {
                 val result = resp.result
-                paymasterAndData = result.getPaymasterAndData()
-                preVerificationGas = result.getPreVerificationGas()
-                verificationGasLimit = result.getVerificationGasLimit()
-                callGasLimit = result.getCallGasLimit()
+                paymasterAndData = result.paymasterAndData
+                preVerificationGas = result.preVerificationGas
+                verificationGasLimit = result.verificationGasLimit
+                callGasLimit = result.callGasLimit
             }
         } else {
             val resp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
@@ -97,9 +99,9 @@ abstract class SmartAccount(
             }
             val result = resp.result
             userOperation.apply {
-                preVerificationGas = result.getPreVerificationGas()
-                verificationGasLimit = result.getVerificationGasLimit()
-                callGasLimit = result.getCallGasLimit()
+                preVerificationGas = result.preVerificationGas
+                verificationGasLimit = result.verificationGasLimit
+                callGasLimit = result.callGasLimit
             }
         }
 

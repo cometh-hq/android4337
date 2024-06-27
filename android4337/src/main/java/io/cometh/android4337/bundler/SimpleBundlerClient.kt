@@ -5,11 +5,10 @@ import io.cometh.android4337.bundler.response.EthEstimateUserOperationGasRespons
 import io.cometh.android4337.bundler.response.EthGetUserOperationByHashResponse
 import io.cometh.android4337.bundler.response.EthGetUserOperationReceiptResponse
 import io.cometh.android4337.bundler.response.EthSendUserOperationResponse
-import io.cometh.android4337.toEncodedMap
+import io.cometh.android4337.toMap
 import io.cometh.android4337.utils.requireHexAddress
 import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.Request
-import org.web3j.protocol.http.HttpService
 
 val DUMMY_SIGNATURE =
     "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c"
@@ -17,7 +16,7 @@ val DUMMY_SIGNATURE =
 class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClient {
 
     override fun ethSendUserOperation(userOperation: UserOperation, entryPointAddress: String): Request<Any, EthSendUserOperationResponse> {
-        val data = userOperation.toEncodedMap()
+        val data = userOperation.toMap()
         return Request(
             "eth_sendUserOperation",
             listOf(data, entryPointAddress),
@@ -31,7 +30,7 @@ class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClien
         entryPointAddress: String
     ): Request<Any, EthEstimateUserOperationGasResponse> {
         entryPointAddress.requireHexAddress()
-        val data = userOperation.toEncodedMap().toMutableMap()
+        val data = userOperation.toMap().toMutableMap()
         data["signature"] = DUMMY_SIGNATURE
         return Request(
             "eth_estimateUserOperationGas",

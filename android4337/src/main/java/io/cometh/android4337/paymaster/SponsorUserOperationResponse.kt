@@ -36,10 +36,5 @@ data class SponsorUserOperation @JsonCreator constructor(
     @JsonProperty("preVerificationGas") val preVerificationGas: String,
     @JsonProperty("verificationGasLimit") val verificationGasLimit: String,
     @JsonProperty("callGasLimit") val callGasLimit: String,
-) {
-    fun getPaymasterAndData() = paymasterAndData.hexStringToByteArray()
-    fun getPreVerificationGas() = preVerificationGas.hexStringToBigInt()
-    fun getVerificationGasLimit() = verificationGasLimit.hexStringToBigInt()
-    fun getCallGasLimit() = callGasLimit.hexStringToBigInt()
-}
+)
 

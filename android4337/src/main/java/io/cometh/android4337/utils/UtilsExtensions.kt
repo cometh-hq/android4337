@@ -10,7 +10,7 @@ import java.math.BigInteger
 
 fun ByteArray.toHex(): String = Numeric.toHexString(this)
 fun BigInteger.toHex(): String = Numeric.toHexString(this.toByteArray())
-fun String.isHex() = Regex("^0x[0-9A-Fa-f]+$").matches(this)
+fun String.isHex() = Regex("^0x[0-9A-Fa-f]*$").matches(this)
 fun String.requireHex() = require(isHex()) { "Not a hex string: $this" }
 fun String.requireHexAddress() = require(isHex() && length == 42) { "Not an address: $this" }
 fun String.toAddress() = Address(160, this)

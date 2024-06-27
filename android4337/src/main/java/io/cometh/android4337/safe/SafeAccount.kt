@@ -167,15 +167,15 @@ class SafeAccount private constructor(
             chainId,
             config.erc4337ModuleAddress,
             userOperation.sender,
-            userOperation.nonce.toHex(),
-            userOperation.initCode.toHex(),
-            userOperation.callData.toHex(),
-            userOperation.verificationGasLimit.toHex(),
-            userOperation.callGasLimit.toHex(),
-            userOperation.preVerificationGas.toHex(),
-            userOperation.maxFeePerGas.toHex(),
-            userOperation.maxPriorityFeePerGas.toHex(),
-            userOperation.paymasterAndData.toHex(),
+            userOperation.nonce,
+            userOperation.initCode,
+            userOperation.callData,
+            userOperation.verificationGasLimit,
+            userOperation.callGasLimit,
+            userOperation.preVerificationGas,
+            userOperation.maxFeePerGas,
+            userOperation.maxPriorityFeePerGas,
+            userOperation.paymasterAndData,
             validAfter.toHex(),
             validUntil.toHex(),
             entryPointAddress
@@ -234,8 +234,7 @@ class SafeAccount private constructor(
             initializer = setupData,
             saltNonce = nonce.toBigInteger()
         )
-        val initCode = "${config.safeProxyFactoryAddress}${createProxyWithNonceData.toHexNoPrefix()}"
-        return initCode.hexStringToByteArray()
+        return "${config.safeProxyFactoryAddress}${createProxyWithNonceData.toHexNoPrefix()}".hexStringToByteArray()
     }
 
     private fun buildSafeJsonEip712(

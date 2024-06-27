@@ -5,8 +5,6 @@ import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
 import io.cometh.android4337.utils.toHex
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -144,15 +142,15 @@ class SafeAccountTest {
             "0x7bb374280000000000000000000000000338dcd5512ae8f3c481c33eb4b6eedf632d1d2f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000406661abd00000000000000000000000000000000000000000000000000000000"
         val userOperation = UserOperation(
             sender = "0x2ff46f26638977ae8c88e205cca407a1a9725f0b",
-            nonce = "0x00".hexStringToBigInt(),
-            initCode = "0x".hexStringToByteArray(),
-            callData = callData.hexStringToByteArray(),
-            callGasLimit = "0x1e8480".hexStringToBigInt(),
-            preVerificationGas = "0xea60".hexStringToBigInt(),
-            verificationGasLimit = "0x07a120".hexStringToBigInt(),
-            maxFeePerGas = "0x02ee7c55e2".hexStringToBigInt(),
-            maxPriorityFeePerGas = "0x1f2ecf7f".hexStringToBigInt(),
-            paymasterAndData = "0x".hexStringToByteArray()
+            nonce = "0x00",
+            initCode = "0x",
+            callData = callData,
+            callGasLimit = "0x1e8480",
+            preVerificationGas = "0xea60",
+            verificationGasLimit = "0x07a120",
+            maxFeePerGas = "0x02ee7c55e2",
+            maxPriorityFeePerGas = "0x1f2ecf7f",
+            paymasterAndData = "0x"
         )
 
         val signature = safeAccount2.signOperation(userOperation, ENTRY_POINT_ADDRESS)

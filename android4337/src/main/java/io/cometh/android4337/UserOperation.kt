@@ -1,51 +1,49 @@
 package io.cometh.android4337
 
-import io.cometh.android4337.utils.toHex
-import org.web3j.abi.datatypes.Address
-import org.web3j.abi.datatypes.DynamicBytes
-import org.web3j.abi.datatypes.DynamicStruct
-import org.web3j.abi.datatypes.generated.Uint256
-import java.math.BigInteger
+import io.cometh.android4337.utils.requireHex
 
 data class UserOperation(
     val sender: String,
-    val nonce: BigInteger,
-    val initCode: ByteArray,
-    val callData: ByteArray,
-    var callGasLimit: BigInteger,
-    var verificationGasLimit: BigInteger,
-    var preVerificationGas: BigInteger,
-    var maxFeePerGas: BigInteger,
-    var maxPriorityFeePerGas: BigInteger,
-    var paymasterAndData: ByteArray,
-    var signature: ByteArray? = null
-) : DynamicStruct(
-    Address(160, sender),
-    Uint256(nonce),
-    DynamicBytes(initCode),
-    DynamicBytes(callData),
-    Uint256(callGasLimit),
-    Uint256(verificationGasLimit),
-    Uint256(preVerificationGas),
-    Uint256(maxFeePerGas),
-    Uint256(maxPriorityFeePerGas),
-    DynamicBytes(paymasterAndData),
-    DynamicBytes(signature)
-)
+    val nonce: String,
+    val initCode: String,
+    val callData: String,
+    var callGasLimit: String,
+    var verificationGasLimit: String,
+    var preVerificationGas: String,
+    var maxFeePerGas: String,
+    var maxPriorityFeePerGas: String,
+    var paymasterAndData: String,
+    var signature: String? = null
+) {
+    init {
+        sender.requireHex()
+        nonce.requireHex()
+        initCode.requireHex()
+        callData.requireHex()
+        callGasLimit.requireHex()
+        verificationGasLimit.requireHex()
+        preVerificationGas.requireHex()
+        maxFeePerGas.requireHex()
+        maxPriorityFeePerGas.requireHex()
+        paymasterAndData.requireHex()
+    }
+}
 
-fun UserOperation.toEncodedMap(): Map<String, String> {
+fun UserOperation.toMap(): Map<String, String> {
     val map = mutableMapOf(
-        "sender" to this.sender,
-        "nonce" to this.nonce.toHex(),
-        "initCode" to this.initCode.toHex(),
-        "callData" to this.callData.toHex(),
-        "callGasLimit" to this.callGasLimit.toHex(),
-        "verificationGasLimit" to this.verificationGasLimit.toHex(),
-        "preVerificationGas" to this.preVerificationGas.toHex(),
-        "maxFeePerGas" to this.maxFeePerGas.toHex(),
-        "maxPriorityFeePerGas" to this.maxPriorityFeePerGas.toHex(),
-        "paymasterAndData" to this.paymasterAndData.toHex(),
+        "sender" to sender,
+        "nonce" to nonce,
+        "initCode" to initCode,
+        "callData" to callData,
+        "callGasLimit" to callGasLimit,
+        "verificationGasLimit" to verificationGasLimit,
+        "preVerificationGas" to preVerificationGas,
+        "maxFeePerGas" to maxFeePerGas,
+        "maxPriorityFeePerGas" to maxPriorityFeePerGas,
+        "paymasterAndData" to paymasterAndData,
     )
-    if (this.signature != null) map["signature"] = this.signature!!.toHex()
+    if (this.signature != null) map["signature"] = this.signature!!
     return map
 }
+
+

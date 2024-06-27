@@ -12,7 +12,6 @@ import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.TestsData
 import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -132,21 +131,18 @@ class SmartAccountTest {
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
-        assertEquals(3.toBigInteger(), userOperation.nonce)
-        assertEquals("0x", userOperation.initCode.toHex())
+        assertEquals("0x03", userOperation.nonce)
+        assertEquals("0x", userOperation.initCode)
         assertEquals(
             "0x7bb374280000000000000000000000000338dcd5512ae8f3c481c33eb4b6eedf632d1d2f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000406661abd00000000000000000000000000000000000000000000000000000000",
-            userOperation.callData.toHex()
+            userOperation.callData
         )
-        assertEquals(BigInteger.valueOf(12100), userOperation.callGasLimit)
-        assertEquals(BigInteger.valueOf(285642), userOperation.verificationGasLimit)
-        assertEquals(BigInteger.valueOf(60460), userOperation.preVerificationGas)
-        assertEquals("0x01e3fb094e".hexStringToBigInt(), userOperation.maxFeePerGas)
-        assertEquals("0x53cd81aa".hexStringToBigInt(), userOperation.maxPriorityFeePerGas)
-        assertEquals("0x", userOperation.paymasterAndData.toHex())
-        assertEquals("0xEC2C".hexStringToBigInt(), userOperation.preVerificationGas)
-        assertEquals("0x45BCA".hexStringToBigInt(), userOperation.verificationGasLimit)
-        assertEquals("0x2F44".hexStringToBigInt(), userOperation.callGasLimit)
+        assertEquals("0x01e3fb094e", userOperation.maxFeePerGas)
+        assertEquals("0x53cd81aa", userOperation.maxPriorityFeePerGas)
+        assertEquals("0x", userOperation.paymasterAndData)
+        assertEquals("0xEC2C", userOperation.preVerificationGas)
+        assertEquals("0x45BCA", userOperation.verificationGasLimit)
+        assertEquals("0x2F44", userOperation.callGasLimit)
     }
 
     @Test
@@ -164,21 +160,18 @@ class SmartAccountTest {
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
-        assertEquals(3.toBigInteger(), userOperation.nonce)
-        assertEquals("0x", userOperation.initCode.toHex())
+        assertEquals("0x03", userOperation.nonce)
+        assertEquals("0x", userOperation.initCode)
         assertEquals(
             "0x7bb37428000000000000000000000000f64da4efa19b42ef2f897a3d533294b892e6d99e0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            userOperation.callData.toHex()
+            userOperation.callData
         )
-        assertEquals(BigInteger.valueOf(12100), userOperation.callGasLimit)
-        assertEquals(BigInteger.valueOf(285642), userOperation.verificationGasLimit)
-        assertEquals(BigInteger.valueOf(60460), userOperation.preVerificationGas)
-        assertEquals("0x01e3fb094e".hexStringToBigInt(), userOperation.maxFeePerGas)
-        assertEquals("0x53cd81aa".hexStringToBigInt(), userOperation.maxPriorityFeePerGas)
-        assertEquals("0x", userOperation.paymasterAndData.toHex())
-        assertEquals("0xEC2C".hexStringToBigInt(), userOperation.preVerificationGas)
-        assertEquals("0x45BCA".hexStringToBigInt(), userOperation.verificationGasLimit)
-        assertEquals("0x2F44".hexStringToBigInt(), userOperation.callGasLimit)
+        assertEquals("0x01e3fb094e", userOperation.maxFeePerGas)
+        assertEquals("0x53cd81aa", userOperation.maxPriorityFeePerGas)
+        assertEquals("0x", userOperation.paymasterAndData)
+        assertEquals("0xEC2C", userOperation.preVerificationGas)
+        assertEquals("0x45BCA", userOperation.verificationGasLimit)
+        assertEquals("0x2F44", userOperation.callGasLimit)
     }
 
     @Test
@@ -195,24 +188,21 @@ class SmartAccountTest {
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
-        assertEquals(3.toBigInteger(), userOperation.nonce)
+        assertEquals("0x03", userOperation.nonce)
         assertEquals(
             "0x4e1dcf7ad4e460cfd30791ccc4f9c8a4f820ec671688f0b900000000000000000000000029fcb43b46531bca003ddc8fcb67ffe91900c7620000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001e4b63e800d000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002dd68b007b46fbe91b9a7c3eda5a7a1063cb5b470000000000000000000000000000000000000000000000000000000000000140000000000000000000000000a581c4a4db7175302464ff3c06380bc3270b403700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000009d8a62f656a8d1615c1294fd71e9cfb3e4855a4f00000000000000000000000000000000000000000000000000000000000000648d0dc49f00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000a581c4a4db7175302464ff3c06380bc3270b40370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            userOperation.initCode.toHex()
+            userOperation.initCode
         )
         assertEquals(
             "0x7bb37428000000000000000000000000f64da4efa19b42ef2f897a3d533294b892e6d99e0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            userOperation.callData.toHex()
+            userOperation.callData
         )
-        assertEquals(BigInteger.valueOf(12100), userOperation.callGasLimit)
-        assertEquals(BigInteger.valueOf(285642), userOperation.verificationGasLimit)
-        assertEquals(BigInteger.valueOf(60460), userOperation.preVerificationGas)
-        assertEquals("0x01e3fb094e".hexStringToBigInt(), userOperation.maxFeePerGas)
-        assertEquals("0x53cd81aa".hexStringToBigInt(), userOperation.maxPriorityFeePerGas)
-        assertEquals("0x", userOperation.paymasterAndData.toHex())
-        assertEquals("0xEC2C".hexStringToBigInt(), userOperation.preVerificationGas)
-        assertEquals("0x45BCA".hexStringToBigInt(), userOperation.verificationGasLimit)
-        assertEquals("0x2F44".hexStringToBigInt(), userOperation.callGasLimit)
+        assertEquals("0x01e3fb094e", userOperation.maxFeePerGas)
+        assertEquals("0x53cd81aa", userOperation.maxPriorityFeePerGas)
+        assertEquals("0x", userOperation.paymasterAndData)
+        assertEquals("0xEC2C", userOperation.preVerificationGas)
+        assertEquals("0x45BCA", userOperation.verificationGasLimit)
+        assertEquals("0x2F44", userOperation.callGasLimit)
     }
 
     @Test
@@ -230,20 +220,20 @@ class SmartAccountTest {
         )
 
         assertEquals(safeAccountWithPaymaster.accountAddress, userOperation.sender)
-        assertEquals(3.toBigInteger(), userOperation.nonce)
-        assertEquals("0x", userOperation.initCode.toHex())
+        assertEquals("0x03", userOperation.nonce)
+        assertEquals("0x", userOperation.initCode)
         assertEquals(
             "0x7bb374280000000000000000000000000338dcd5512ae8f3c481c33eb4b6eedf632d1d2f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000406661abd00000000000000000000000000000000000000000000000000000000",
-            userOperation.callData.toHex()
+            userOperation.callData
         )
-        assertEquals("0x163a2".hexStringToBigInt(), userOperation.callGasLimit)
-        assertEquals("0x1b247".hexStringToBigInt(), userOperation.verificationGasLimit)
-        assertEquals("0xef1c".hexStringToBigInt(), userOperation.preVerificationGas)
-        assertEquals("0x01e3fb094e".hexStringToBigInt(), userOperation.maxFeePerGas)
-        assertEquals("0x53cd81aa".hexStringToBigInt(), userOperation.maxPriorityFeePerGas)
+        assertEquals("0x163a2", userOperation.callGasLimit)
+        assertEquals("0x1b247", userOperation.verificationGasLimit)
+        assertEquals("0xef1c", userOperation.preVerificationGas)
+        assertEquals("0x01e3fb094e", userOperation.maxFeePerGas)
+        assertEquals("0x53cd81aa", userOperation.maxPriorityFeePerGas)
         assertEquals(
-            "0xdff7fa1077bce740a6a212b3995990682c0ba66d000000000000000000000000000000000000000000000000000000006672ce7100000000000000000000000000000000000000000000000000000000000000000e499f53c85c53cd4f1444b807e380c6a01a412d7e1cfd24b6153debb97cbc986e6809dff8c005ed94c32bf1d5e722b9f40b909fc89d8982f2f99cb7a91b19f01c",
-            userOperation.paymasterAndData.toHex()
+            "0xDFF7FA1077Bce740a6a212b3995990682c0Ba66d000000000000000000000000000000000000000000000000000000006672ce7100000000000000000000000000000000000000000000000000000000000000000e499f53c85c53cd4f1444b807e380c6a01a412d7e1cfd24b6153debb97cbc986e6809dff8c005ed94c32bf1d5e722b9f40b909fc89d8982f2f99cb7a91b19f01c",
+            userOperation.paymasterAndData
         )
     }
 

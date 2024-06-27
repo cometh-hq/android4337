@@ -7,14 +7,14 @@ import io.cometh.android4337.bundler.response.EthGetUserOperationReceiptResponse
 import io.cometh.android4337.bundler.response.EthSendUserOperationResponse
 import io.cometh.android4337.toEncodedMap
 import io.cometh.android4337.utils.requireHexAddress
+import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.http.HttpService
 
 val DUMMY_SIGNATURE =
     "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c"
 
-class SimpleBundlerClient(bundlerUrl: String) : BundlerClient {
-    private val web3jService = HttpService(bundlerUrl)
+class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClient {
 
     override fun ethSendUserOperation(userOperation: UserOperation, entryPointAddress: String): Request<Any, EthSendUserOperationResponse> {
         val data = userOperation.toEncodedMap()

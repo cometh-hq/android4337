@@ -4,11 +4,8 @@ import androidx.annotation.WorkerThread
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
-import io.cometh.android4337.utils.requireHex
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.toAddress
+import io.cometh.android4337.utils.toChecksumHex
 import io.cometh.android4337.utils.toHex
 import org.web3j.abi.datatypes.Address
 import org.web3j.crypto.Credentials
@@ -17,8 +14,6 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
-
-val EMPTY_BYTE_ARRAY = byteArrayOf()
 
 class SmartAccountException(message: String) : Exception(message)
 
@@ -40,10 +35,7 @@ abstract class SmartAccount(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun sendTransaction(to: String, value: BigInteger, data: String): String {
-        data.requireHex()
-        to.requireHexAddress()
-
+    fun sendUserOperation(to: Address, value: BigInteger, data: ByteArray): String {
         val userOperation = prepareUserOperation(to, value, data).apply {
             signature = signOperation(this, entryPointAddress).toHex()
         }
@@ -56,21 +48,19 @@ abstract class SmartAccount(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun prepareUserOperation(to: String, value: BigInteger, data: String): UserOperation {
-        val nonce = getNonce()
-        val callData = getCallData(to.toAddress(), value, data.hexStringToByteArray())
-        val initCode = if (isDeployed()) EMPTY_BYTE_ARRAY else getInitCode()
+    fun prepareUserOperation(to: Address, value: BigInteger, data: ByteArray): UserOperation {
+        val isDeployed = isDeployed()
         val userOperation = UserOperation(
             sender = accountAddress,
-            nonce = nonce.toHex(),
-            initCode = initCode.toHex(),
-            callData = callData.toHex(),
+            nonce = getNonce().toHex(),
+            factory = if (!isDeployed) getFactoryAddress().toChecksumHex() else null,
+            factoryData = if (!isDeployed) getFactoryData().toHex() else null,
+            callData = getCallData(to, value, data).toHex(),
             callGasLimit = "0x0",
             verificationGasLimit = "0x0",
             preVerificationGas = "0x0",
             maxFeePerGas = "0x0",
             maxPriorityFeePerGas = "0x0",
-            paymasterAndData = "0x"
         )
 
         gasPriceProvider.getGasPrice().let { gasPrice ->
@@ -80,28 +70,29 @@ abstract class SmartAccount(
             }
         }
 
+        val estimateResp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
+        if (estimateResp.hasError()) {
+            throw SmartAccountException("Bundler cannot estimate user operation gas, code: ${estimateResp.error!!.code} ${estimateResp.error.message}")
+        }
+        userOperation.apply {
+            preVerificationGas = estimateResp.result.preVerificationGas
+            verificationGasLimit = estimateResp.result.verificationGasLimit
+            callGasLimit = estimateResp.result.callGasLimit
+        }
+
         if (paymasterClient != null) {
             val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
             if (resp.hasError()) {
                 throw SmartAccountException("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")
             }
             userOperation.apply {
-                val result = resp.result
-                paymasterAndData = result.paymasterAndData
-                preVerificationGas = result.preVerificationGas
-                verificationGasLimit = result.verificationGasLimit
-                callGasLimit = result.callGasLimit
-            }
-        } else {
-            val resp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
-            if (resp.hasError()) {
-                throw SmartAccountException("Bundler cannot estimate user operation gas, code: ${resp.error!!.code} ${resp.error.message}")
-            }
-            val result = resp.result
-            userOperation.apply {
-                preVerificationGas = result.preVerificationGas
-                verificationGasLimit = result.verificationGasLimit
-                callGasLimit = result.callGasLimit
+                paymaster = resp.result.paymaster
+                paymasterAndData = resp.result.paymasterAndData
+                paymasterVerificationGasLimit = resp.result.paymasterVerificationGasLimit
+                paymasterPostOpGasLimit = resp.result.paymasterPostOpGasLimit
+                preVerificationGas = resp.result.preVerificationGas
+                verificationGasLimit = resp.result.verificationGasLimit
+                callGasLimit = resp.result.callGasLimit
             }
         }
 
@@ -129,5 +120,6 @@ abstract class SmartAccount(
 
     abstract fun signOperation(userOperation: UserOperation, entryPointAddress: String): ByteArray
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray
-    abstract fun getInitCode(): ByteArray
+    abstract fun getFactoryAddress(): Address
+    abstract fun getFactoryData(): ByteArray
 }

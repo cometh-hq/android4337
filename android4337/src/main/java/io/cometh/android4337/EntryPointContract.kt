@@ -13,12 +13,16 @@ import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
 
-val ENTRY_POINT_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 
 class EntryPointContract(
     private val transactionManager: TransactionManager,
-    private val contractAddress: String = ENTRY_POINT_ADDRESS
+    private val contractAddress: String = ENTRY_POINT_ADDRESS_V7
 ) {
+
+    companion object {
+        const val ENTRY_POINT_ADDRESS_V7 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+    }
+
     init {
         contractAddress.requireHexAddress()
     }

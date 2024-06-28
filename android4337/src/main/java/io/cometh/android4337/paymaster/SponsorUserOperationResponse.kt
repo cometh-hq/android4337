@@ -32,7 +32,10 @@ class SponsorUserOperationResponse : Response<SponsorUserOperation>() {
 }
 
 data class SponsorUserOperation @JsonCreator constructor(
+    @JsonProperty("paymaster") val paymaster: String,
     @JsonProperty("paymasterAndData") val paymasterAndData: String,
+    @JsonProperty("paymasterVerificationGasLimit") val paymasterVerificationGasLimit: String,
+    @JsonProperty("paymasterPostOpGasLimit") val paymasterPostOpGasLimit: String,
     @JsonProperty("preVerificationGas") val preVerificationGas: String,
     @JsonProperty("verificationGasLimit") val verificationGasLimit: String,
     @JsonProperty("callGasLimit") val callGasLimit: String,

@@ -6,6 +6,8 @@ import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
+import io.cometh.android4337.getInitCode
+import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.SafeUtils.getEnableModulesFunctionData
 import io.cometh.android4337.safe.SafeUtils.getSetupFunctionData
@@ -163,26 +165,27 @@ class SafeAccount private constructor(
     ): ByteArray {
         val validAfter = BigInteger.ZERO
         val validUntil = BigInteger.ZERO
-        val json = buildSafeJsonEip712(
-            chainId,
-            config.erc4337ModuleAddress,
-            userOperation.sender,
-            userOperation.nonce,
-            userOperation.initCode,
-            userOperation.callData,
-            userOperation.verificationGasLimit,
-            userOperation.callGasLimit,
-            userOperation.preVerificationGas,
-            userOperation.maxFeePerGas,
-            userOperation.maxPriorityFeePerGas,
-            userOperation.paymasterAndData,
-            validAfter.toHex(),
-            validUntil.toHex(),
-            entryPointAddress
+        val json = buildSafeJsonEip712V7(
+            chainId = chainId,
+            verifyingContract = config.erc4337ModuleAddress,
+            sender = userOperation.sender,
+            nonce = userOperation.nonce,
+            initCode = userOperation.getInitCode(),
+            callData = userOperation.callData,
+            verificationGasLimit = userOperation.verificationGasLimit,
+            callGasLimit = userOperation.callGasLimit,
+            preVerificationGas = userOperation.preVerificationGas,
+            maxFeePerGas = userOperation.maxFeePerGas,
+            maxPriorityFeePerGas = userOperation.maxPriorityFeePerGas,
+            paymasterAndData = userOperation.getPaymasterAndData(),
+            validAfter = validAfter.toHex(),
+            validUntil = validUntil.toHex(),
+            entryPointAddress = entryPointAddress
         )
         val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
         val validAfterBytes = Numeric.toBytesPadded(validAfter, 6)
         val validUntilBytes = Numeric.toBytesPadded(validUntil, 6)
+        val signatureDataHex = signatureData.toHexNoPrefix()
         val signature = "0x${validAfterBytes.toHexNoPrefix()}${validUntilBytes.toHexNoPrefix()}${signatureData.toHexNoPrefix()}"
         return signature.hexStringToByteArray()
     }
@@ -207,16 +210,20 @@ class SafeAccount private constructor(
 
     override fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray {
         val inputParams = listOf(
-            to, Uint256(value),
+            to,
+            Uint256(value),
             DynamicBytes(data),
             Uint8(BigInteger.ZERO),
         )
         val outputParams = listOf(object : TypeReference<Uint256>() {})
-        val callData = Function("executeUserOp", inputParams, outputParams).encode()
-        return callData
+        return Function("executeUserOp", inputParams, outputParams).encode()
     }
 
-    override fun getInitCode(): ByteArray {
+    override fun getFactoryAddress(): Address {
+        return config.safeProxyFactoryAddress.toAddress()
+    }
+
+    override fun getFactoryData(): ByteArray {
         val nonce = 0
         val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.toAddress()))
         val setupData = getSetupFunctionData(
@@ -234,10 +241,10 @@ class SafeAccount private constructor(
             initializer = setupData,
             saltNonce = nonce.toBigInteger()
         )
-        return "${config.safeProxyFactoryAddress}${createProxyWithNonceData.toHexNoPrefix()}".hexStringToByteArray()
+        return createProxyWithNonceData
     }
 
-    private fun buildSafeJsonEip712(
+    private fun buildSafeJsonEip712V7(
         chainId: Int,
         verifyingContract: String,
         sender: String,
@@ -266,11 +273,11 @@ class SafeAccount private constructor(
                 { "type":"uint256", "name":"nonce" },
                 { "type":"bytes", "name":"initCode" },
                 { "type":"bytes", "name":"callData" },
-                { "type":"uint256", "name":"callGasLimit" },
-                { "type":"uint256", "name":"verificationGasLimit" },
+                { "type":"uint128", "name":"verificationGasLimit" },
+                { "type":"uint128", "name":"callGasLimit" },
                 { "type":"uint256", "name":"preVerificationGas" },
-                { "type":"uint256", "name":"maxFeePerGas" },
-                { "type":"uint256", "name":"maxPriorityFeePerGas" },
+                { "type":"uint128", "name":"maxPriorityFeePerGas" },
+                { "type":"uint128", "name":"maxFeePerGas" },
                 { "type":"bytes", "name":"paymasterAndData" },
                 { "type":"uint48", "name":"validAfter" },
                 { "type":"uint48", "name":"validUntil" },
@@ -278,7 +285,7 @@ class SafeAccount private constructor(
              ]
           },
           "primaryType":"SafeOp",
-          "domain":{ "chainId": "$chainId", "verifyingContract": "$verifyingContract" },
+          "domain":{ "chainId": $chainId, "verifyingContract": "$verifyingContract" },
           "message":{
              "safe":"$sender",
              "nonce":"$nonce",

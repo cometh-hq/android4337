@@ -16,10 +16,11 @@ fun String.requireHexAddress() = require(isHex() && length == 42) { "Not an addr
 fun String.toAddress() = Address(160, this)
 fun ByteArray.toHexNoPrefix(): String = Numeric.toHexStringNoPrefix(this)
 fun SignatureData.toHexNoPrefix() = "${r.toHexNoPrefix()}${s.toHexNoPrefix()}${v.toHexNoPrefix()}"
-fun String.hexStringToBigInt(): BigInteger = Numeric.toBigInt(this)
-fun String.hexStringToByteArray(): ByteArray = Numeric.hexStringToByteArray(this)
+fun String.hexStringToBigInt(): BigInteger = requireHex().let { Numeric.toBigInt(this) }
+fun String.hexStringToByteArray(): ByteArray = requireHex().let { Numeric.hexStringToByteArray(this) }
 fun Function.encode(): ByteArray = FunctionEncoder.encode(this).hexStringToByteArray()
 fun String.removeOx(): String = removePrefix("0x")
 fun ByteArray.toChecksumHex(): String = Keys.toChecksumAddress(toHex())
 fun BigInteger.toHexNoPrefix(): String = Numeric.toHexStringNoPrefix(this.toByteArray())
+fun Address.toChecksumHex(): String = Keys.toChecksumAddress(this.toString())
 

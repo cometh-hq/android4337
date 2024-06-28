@@ -19,7 +19,7 @@ class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClien
         val data = userOperation.toMap()
         return Request(
             "eth_sendUserOperation",
-            listOf(data, entryPointAddress),
+            listOf(userOperation.toMap(), entryPointAddress),
             web3jService,
             EthSendUserOperationResponse::class.java
         )

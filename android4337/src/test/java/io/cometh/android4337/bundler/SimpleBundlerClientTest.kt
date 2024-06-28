@@ -2,31 +2,25 @@ package io.cometh.android4337.bundler
 
 import io.cometh.android4337.ENTRY_POINT_ADDRESS
 import io.cometh.android4337.UserOperation
-import io.cometh.android4337.bundler.response.EthEstimateUserOperationGasResponse
-import io.cometh.android4337.bundler.response.UserOperationGasEstimation
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
+import io.cometh.android4337.toInputStream
 import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.web3j.protocol.Web3jService
-import java.math.BigInteger
 
 class SimpleBundlerClientTest {
 
     @MockK
-    lateinit var web3jService: Web3jService
-
+    lateinit var httpResponseStub: HttpResponseStub
 
     lateinit var bundlerClient: BundlerClient
 
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
-        bundlerClient = SimpleBundlerClient(web3jService)
+        bundlerClient = SimpleBundlerClient(CustomHttpService(httpResponseStub))
     }
 
     @Test
@@ -44,18 +38,17 @@ class SimpleBundlerClientTest {
             paymasterAndData = "0x",
             signature = "0x0000000000000000000000004232f7414022b3da2b1b3fc2d82d40a10eefc29c913c6801c1827dcb1c3735c8065234a4435ec0ca3a13786ecd683320661a5abb2b1dd2c2b3fc8dcf1473fcd81c"
         )
-
-        val respData = EthEstimateUserOperationGasResponse().apply {
-            setResult(
-                UserOperationGasEstimation(
-                    preVerificationGas = "0xEC2C",
-                    verificationGasLimit = "0x45BCA",
-                    callGasLimit = "0x2F44"
-                )
-            )
-        }
-        every { web3jService.send<EthEstimateUserOperationGasResponse>(any(), any()) } returns respData
-
+        every { httpResponseStub.getResponse() } returns """
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                    "preVerificationGas": "0xEC2C",
+                    "verificationGasLimit": "0x45BCA",
+                    "callGasLimit": "0x2F44"
+                }
+            }
+        """.trimIndent().toInputStream()
 
         val resp = bundlerClient.ethEstimateUserOperationGas(
             userOperation,

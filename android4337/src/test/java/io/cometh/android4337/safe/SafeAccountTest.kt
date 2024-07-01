@@ -1,6 +1,8 @@
 package io.cometh.android4337.safe
 
+import io.cometh.android4337.CustomHttpService
 import io.cometh.android4337.EntryPointContract
+import io.cometh.android4337.HttpResponseStub
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
@@ -24,7 +26,7 @@ class SafeAccountTest {
     lateinit var gasPriceProvider: UserOperationGasPriceProvider
 
     @MockK
-    lateinit var web3j: Web3j
+    lateinit var httpResponseStub: HttpResponseStub
 
     @MockK
     lateinit var paymasterClient: PaymasterClient
@@ -37,34 +39,30 @@ class SafeAccountTest {
 
     lateinit var safeAccount1: SafeAccount
     lateinit var safeAccount2: SafeAccount
-
-    val safeConfig = SafeConfig.createDefaultConfig()
+    lateinit var web3Service: CustomHttpService
 
     @Before
     fun before() {
         MockKAnnotations.init(this)
+        web3Service = CustomHttpService(httpResponseStub)
         safeAccount1 = SafeAccount.fromAddress(
             address = TestsData.account1SafeAddress,
             credentials = TestsData.account1Credentials,
             bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
             chainId,
-            safeConfig,
+            web3Service,
+            paymasterClient = paymasterClient,
+            gasPriceProvider = gasPriceProvider,
             web3jTransactionManager = transactionManager
         )
         safeAccount2 = SafeAccount.fromAddress(
             TestsData.account2SafeAddress,
             TestsData.account2Credentials,
             bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
-            11155111,
-            safeConfig,
+            chainId,
+            web3Service,
+            paymasterClient = paymasterClient,
+            gasPriceProvider = gasPriceProvider,
             web3jTransactionManager = transactionManager
         )
     }
@@ -75,12 +73,10 @@ class SafeAccountTest {
         val safeAccount = SafeAccount.createNewAccount(
             credentials = TestsData.account1Credentials,
             bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
             chainId,
-            safeConfig,
+            web3Service,
+            paymasterClient = paymasterClient,
+            gasPriceProvider = gasPriceProvider,
             web3jTransactionManager = transactionManager
         )
         assertEquals(TestsData.account1SafeAddress, safeAccount.safeAddress)
@@ -108,7 +104,6 @@ class SafeAccountTest {
         val address = SafeAccount.predictAddress(
             TestsData.account1Credentials.address,
             transactionManager,
-            safeConfig,
         )
         assertEquals(TestsData.account1SafeAddress, address)
     }
@@ -121,7 +116,6 @@ class SafeAccountTest {
         val address = SafeAccount.predictAddress(
             TestsData.account2Credentials.address,
             transactionManager,
-            safeConfig,
         )
         assertEquals(TestsData.account2SafeAddress, address)
     }
@@ -161,13 +155,12 @@ class SafeAccountTest {
         SafeAccount.fromAddress(
             "wrong_address",
             TestsData.account1Credentials,
-            bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
-            chainId,
-            safeConfig,
+            bundlerClient = bundlerClient,
+            entryPointAddress = entryPointAddress,
+            web3Service = web3Service,
+            chainId = chainId,
+            gasPriceProvider = gasPriceProvider,
+            paymasterClient = paymasterClient,
         )
     }
 

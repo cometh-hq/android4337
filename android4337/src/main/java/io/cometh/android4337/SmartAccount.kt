@@ -9,6 +9,7 @@ import io.cometh.android4337.utils.toChecksumHex
 import io.cometh.android4337.utils.toHex
 import org.web3j.abi.datatypes.Address
 import org.web3j.crypto.Credentials
+import org.web3j.protocol.Service
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.TransactionManager
@@ -22,11 +23,13 @@ abstract class SmartAccount(
     protected val bundlerClient: BundlerClient,
     protected val gasPriceProvider: UserOperationGasPriceProvider,
     protected val entryPointAddress: String,
-    protected val web3: Web3j,
+    protected val web3Service: Service,
     protected val paymasterClient: PaymasterClient? = null,
     val accountAddress: String,
     protected val transactionManager: TransactionManager,
 ) {
+
+    protected val web3 = Web3j.build(web3Service)
 
     init {
         accountAddress.requireHexAddress()

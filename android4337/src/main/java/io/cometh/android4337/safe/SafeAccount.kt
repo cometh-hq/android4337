@@ -1,10 +1,12 @@
 package io.cometh.android4337.safe
 
 import androidx.annotation.WorkerThread
+import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.SmartAccount
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
+import io.cometh.android4337.gasprice.RPCGasEstimator
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
@@ -15,7 +17,7 @@ import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.toAddress
+import io.cometh.android4337.utils.hexStringToAddress
 import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.cometh.android4337.web3j.Create2
@@ -32,6 +34,7 @@ import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.abi.datatypes.generated.Uint8
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.Hash
+import org.web3j.protocol.Service
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.RawTransactionManager
@@ -45,18 +48,18 @@ class SafeAccount private constructor(
     bundlerClient: BundlerClient,
     gasPriceProvider: UserOperationGasPriceProvider,
     entryPointAddress: String,
-    web3j: Web3j,
-    paymasterClient: PaymasterClient? = null,
+    web3Service: Service,
     val safeAddress: String,
     private val chainId: Int,
     private val config: SafeConfig,
-    transactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+    paymasterClient: PaymasterClient? = null,
+    transactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
 ) : SmartAccount(
     credentials,
     bundlerClient,
     gasPriceProvider,
     entryPointAddress,
-    web3j,
+    web3Service,
     paymasterClient,
     safeAddress,
     transactionManager
@@ -71,24 +74,24 @@ class SafeAccount private constructor(
             address: String,
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            gasPriceProvider: UserOperationGasPriceProvider,
-            entryPointAddress: String,
-            web3j: Web3j,
-            paymasterClient: PaymasterClient? = null,
             chainId: Int,
-            config: SafeConfig,
-            web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+            web3Service: Service,
+            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+            paymasterClient: PaymasterClient? = null,
+            gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
+            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             return SafeAccount(
                 credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
-                web3j,
-                paymasterClient,
+                web3Service,
                 address,
                 chainId,
                 config,
+                paymasterClient,
                 web3jTransactionManager
             )
         }
@@ -98,13 +101,13 @@ class SafeAccount private constructor(
         fun createNewAccount(
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            gasPriceProvider: UserOperationGasPriceProvider,
-            entryPointAddress: String,
-            web3j: Web3j,
-            paymasterClient: PaymasterClient? = null,
             chainId: Int,
-            config: SafeConfig,
-            web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+            web3Service: Service,
+            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+            paymasterClient: PaymasterClient? = null,
+            gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
+            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             val predictedAddress = predictAddress(
                 owner = credentials.address,
@@ -116,11 +119,11 @@ class SafeAccount private constructor(
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
-                web3j,
-                paymasterClient,
+                web3Service,
                 predictedAddress,
                 chainId,
                 config,
+                paymasterClient,
                 web3jTransactionManager
             )
         }
@@ -130,19 +133,19 @@ class SafeAccount private constructor(
         fun predictAddress(
             owner: String,
             web3jTransactionManager: TransactionManager,
-            config: SafeConfig,
+            config: SafeConfig = SafeConfig.createDefaultConfig()
         ): String {
             owner.requireHexAddress()
             val nonce = BigInteger.ZERO
             val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
             val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException("Failed to get proxy creation code")
-            val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.toAddress()))
+            val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
             val setupData = getSetupFunctionData(
-                _owners = listOf(owner.toAddress()),
+                _owners = listOf(owner.hexStringToAddress()),
                 _threshold = BigInteger.ONE,
-                to = config.safeModuleSetupAddress.toAddress(),
+                to = config.safeModuleSetupAddress.hexStringToAddress(),
                 data = enableModulesData,
-                fallbackHandler = config.erc4337ModuleAddress.toAddress(),
+                fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
                 paymentToken = Address.DEFAULT,
                 payment = BigInteger.ZERO,
                 paymentReceiver = Address.DEFAULT
@@ -185,7 +188,6 @@ class SafeAccount private constructor(
         val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
         val validAfterBytes = Numeric.toBytesPadded(validAfter, 6)
         val validUntilBytes = Numeric.toBytesPadded(validUntil, 6)
-        val signatureDataHex = signatureData.toHexNoPrefix()
         val signature = "0x${validAfterBytes.toHexNoPrefix()}${validUntilBytes.toHexNoPrefix()}${signatureData.toHexNoPrefix()}"
         return signature.hexStringToByteArray()
     }
@@ -220,24 +222,24 @@ class SafeAccount private constructor(
     }
 
     override fun getFactoryAddress(): Address {
-        return config.safeProxyFactoryAddress.toAddress()
+        return config.safeProxyFactoryAddress.hexStringToAddress()
     }
 
     override fun getFactoryData(): ByteArray {
         val nonce = 0
-        val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.toAddress()))
+        val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
         val setupData = getSetupFunctionData(
-            _owners = listOf(credentials.address.toAddress()),
+            _owners = listOf(credentials.address.hexStringToAddress()),
             _threshold = BigInteger.ONE,
-            to = config.safeModuleSetupAddress.toAddress(),
+            to = config.safeModuleSetupAddress.hexStringToAddress(),
             data = enableModulesData,
-            fallbackHandler = config.erc4337ModuleAddress.toAddress(),
+            fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
             paymentToken = Address.DEFAULT,
             payment = BigInteger.ZERO,
             paymentReceiver = Address.DEFAULT
         )
         val createProxyWithNonceData = SafeUtils.getCreateProxyWithNonceFunctionData(
-            _singleton = config.safeSingletonL2Address.toAddress(),
+            _singleton = config.safeSingletonL2Address.hexStringToAddress(),
             initializer = setupData,
             saltNonce = nonce.toBigInteger()
         )

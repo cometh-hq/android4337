@@ -12,12 +12,12 @@ class CustomHttpService(val httpResponseStub: HttpResponseStub) : Service(true) 
     }
 
     override fun performIO(payload: String?): InputStream {
-        return httpResponseStub.getResponse()
+        return httpResponseStub.getResponse(payload)
     }
 }
 
 class HttpResponseStub {
-    fun getResponse(): InputStream {
+    fun getResponse(payload: String?): InputStream {
         throw NotImplementedError()
     }
 }

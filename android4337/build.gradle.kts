@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
+    `maven-publish`
 }
 
 android {
@@ -32,14 +33,25 @@ android {
     }
 }
 
-dependencies {
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "io.cometh.android4337sdk"
+            artifactId = "android4337sdk"
+            version = "1.0"
 
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+}
+
+dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("org.web3j:core:4.8.9-android")
+    api("org.web3j:core:4.8.9-android")
     testImplementation("io.mockk:mockk:1.13.11")
 }

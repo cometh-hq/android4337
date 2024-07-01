@@ -1,16 +1,13 @@
 package io.cometh.android4337
 
 import io.cometh.android4337.bundler.BundlerClient
-import io.cometh.android4337.bundler.DUMMY_SIGNATURE
-import io.cometh.android4337.bundler.response.EthEstimateUserOperationGasResponse
-import io.cometh.android4337.bundler.response.UserOperationGasEstimation
+import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.gasprice.GasPrice
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.paymaster.SponsorUserOperation
 import io.cometh.android4337.paymaster.SponsorUserOperationResponse
 import io.cometh.android4337.safe.SafeAccount
-import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.TestsData
 import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
@@ -25,22 +22,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.Request
-import org.web3j.protocol.core.methods.response.EthGetCode
 import org.web3j.tx.TransactionManager
 import java.math.BigInteger
 
 class SmartAccountTest {
 
     @MockK
-    lateinit var bundlerClient: BundlerClient
-
-    @MockK
     lateinit var gasPriceProvider: UserOperationGasPriceProvider
-
-    @MockK
-    lateinit var web3j: Web3j
 
     @MockK
     lateinit var paymasterClient: PaymasterClient
@@ -48,69 +37,68 @@ class SmartAccountTest {
     @MockK
     lateinit var transactionManager: TransactionManager
 
+    @MockK
+    lateinit var httpResponseStub: HttpResponseStub
+
     val chainId = 11155111
     val entryPointAddress = EntryPointContract.ENTRY_POINT_ADDRESS_V7
-    val safeConfig = SafeConfig.createDefaultConfig()
 
     lateinit var safeAccountWithPaymaster: SafeAccount
     lateinit var safeAccountWithoutPaymaster: SafeAccount
     lateinit var safeAccount2: SafeAccount
+    lateinit var web3Service: CustomHttpService
+    lateinit var bundlerClient: BundlerClient
 
     @Before
     fun before() {
         MockKAnnotations.init(this)
+        web3Service = CustomHttpService(httpResponseStub)
+        bundlerClient = SimpleBundlerClient(web3Service)
+
         safeAccountWithPaymaster = SafeAccount.fromAddress(
             address = TestsData.account1SafeAddress,
             credentials = TestsData.account1Credentials,
-            bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
-            chainId,
-            safeConfig,
-            web3jTransactionManager = transactionManager
+            bundlerClient = bundlerClient,
+            entryPointAddress = entryPointAddress,
+            web3Service = web3Service,
+            chainId = chainId,
+            gasPriceProvider = gasPriceProvider,
+            paymasterClient = paymasterClient,
         )
         safeAccountWithoutPaymaster = SafeAccount.fromAddress(
             address = TestsData.account2SafeAddress,
             credentials = TestsData.account2Credentials,
-            bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            null,
-            chainId,
-            safeConfig,
-            web3jTransactionManager = transactionManager
+            bundlerClient = bundlerClient,
+            entryPointAddress = entryPointAddress,
+            web3Service = web3Service,
+            chainId = chainId,
+            gasPriceProvider = gasPriceProvider,
         )
         safeAccount2 = SafeAccount.fromAddress(
             TestsData.account2SafeAddress,
             TestsData.account2Credentials,
-            bundlerClient,
-            gasPriceProvider,
-            entryPointAddress,
-            web3j,
-            paymasterClient,
-            11155111,
-            safeConfig,
-            web3jTransactionManager = transactionManager
+            bundlerClient = bundlerClient,
+            entryPointAddress = entryPointAddress,
+            web3Service = web3Service,
+            chainId = chainId,
+            gasPriceProvider = gasPriceProvider,
+            paymasterClient = paymasterClient,
         )
     }
 
     @Test
     fun getNonce() {
-        every {
-            transactionManager.sendCall(any(), any(), any())
-        } returns "0x0000000000000000000000000000000000000000000000000000000000000003"
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "0x0000000000000000000000000000000000000000000000000000000000000003" }
+        """.trimIndent().toInputStream()
         assertEquals(BigInteger.valueOf(3), safeAccountWithPaymaster.getNonce())
     }
 
     @Test
     fun isDeployed() {
-        val request = mockk<Request<String, EthGetCode>>()
-        val ethGetCode = EthGetCode().apply { result = "0x1" }
-        every { request.send() } returns ethGetCode
-        every { web3j.ethGetCode(any(), any()) } returns request
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "0x1" }
+        """.trimIndent().toInputStream()
         val isDeployed = safeAccountWithPaymaster.isDeployed()
         assertTrue(isDeployed)
     }
@@ -259,28 +247,42 @@ class SmartAccountTest {
         verificationGasLimit: String = "0x45BCA",
         callGasLimit: String = "0x2F44"
     ) {
-        // bundler
-        val estimateRq = mockk<Request<Any, EthEstimateUserOperationGasResponse>>()
-        every { estimateRq.send() } returns EthEstimateUserOperationGasResponse().apply {
-            result = UserOperationGasEstimation(
-                preVerificationGas,
-                verificationGasLimit,
-                callGasLimit
-            )
-        }
-        every { bundlerClient.ethEstimateUserOperationGas(any(), any()) } returns estimateRq
+
+        every {
+            httpResponseStub.getResponse(match { it.contains("eth_estimateUserOperationGas") })
+        } returns """
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                    "preVerificationGas": "$preVerificationGas",
+                    "verificationGasLimit": "$verificationGasLimit",
+                    "callGasLimit": "$callGasLimit"
+                }
+            }
+        """.trimIndent().toInputStream()
     }
 
     private fun mockGetNonce(nonce: Int = 3) {
         every {
-            transactionManager.sendCall(entryPointAddress, any(), any())
-        } returns "0x${nonce.toBigInteger().toHexNoPrefix().padStart(64, '0')}"
+            httpResponseStub.getResponse(match { it.contains("eth_call") })
+        } returns """
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x${nonce.toBigInteger().toHexNoPrefix().padStart(64, '0')}"
+                }
+            """.trimIndent().toInputStream()
     }
 
     private fun mockEthGetCode(ethGetCodeResult: String) {
-        val ethGetCodeRq = mockk<Request<String, EthGetCode>>()
-        every { ethGetCodeRq.send() } returns EthGetCode().apply { result = ethGetCodeResult }
-        every { web3j.ethGetCode(any(), any()) } returns ethGetCodeRq
+        every { httpResponseStub.getResponse(match { it.contains("eth_getCode") }) } returns """
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": "$ethGetCodeResult"
+            }
+        """.trimIndent().toInputStream()
     }
 
     private fun mockPaymasterSponsorUserOperation(

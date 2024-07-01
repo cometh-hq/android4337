@@ -5,6 +5,7 @@ import io.cometh.android4337.SmartAccount
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
+import io.cometh.android4337.gasprice.RPCGasEstimator
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
@@ -32,6 +33,7 @@ import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.abi.datatypes.generated.Uint8
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.Hash
+import org.web3j.protocol.Service
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.RawTransactionManager
@@ -45,18 +47,18 @@ class SafeAccount private constructor(
     bundlerClient: BundlerClient,
     gasPriceProvider: UserOperationGasPriceProvider,
     entryPointAddress: String,
-    web3j: Web3j,
-    paymasterClient: PaymasterClient? = null,
+    web3Service: Service,
     val safeAddress: String,
     private val chainId: Int,
     private val config: SafeConfig,
-    transactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+    paymasterClient: PaymasterClient? = null,
+    transactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
 ) : SmartAccount(
     credentials,
     bundlerClient,
     gasPriceProvider,
     entryPointAddress,
-    web3j,
+    web3Service,
     paymasterClient,
     safeAddress,
     transactionManager
@@ -71,24 +73,24 @@ class SafeAccount private constructor(
             address: String,
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            gasPriceProvider: UserOperationGasPriceProvider,
             entryPointAddress: String,
-            web3j: Web3j,
-            paymasterClient: PaymasterClient? = null,
             chainId: Int,
-            config: SafeConfig,
-            web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+            web3Service: Service,
+            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            paymasterClient: PaymasterClient? = null,
+            gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
+            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             return SafeAccount(
                 credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
-                web3j,
-                paymasterClient,
+                web3Service,
                 address,
                 chainId,
                 config,
+                paymasterClient,
                 web3jTransactionManager
             )
         }
@@ -98,13 +100,13 @@ class SafeAccount private constructor(
         fun createNewAccount(
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            gasPriceProvider: UserOperationGasPriceProvider,
             entryPointAddress: String,
-            web3j: Web3j,
-            paymasterClient: PaymasterClient? = null,
             chainId: Int,
-            config: SafeConfig,
-            web3jTransactionManager: TransactionManager = RawTransactionManager(web3j, credentials)
+            web3Service: Service,
+            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            paymasterClient: PaymasterClient? = null,
+            gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
+            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             val predictedAddress = predictAddress(
                 owner = credentials.address,
@@ -116,11 +118,11 @@ class SafeAccount private constructor(
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
-                web3j,
-                paymasterClient,
+                web3Service,
                 predictedAddress,
                 chainId,
                 config,
+                paymasterClient,
                 web3jTransactionManager
             )
         }
@@ -130,7 +132,7 @@ class SafeAccount private constructor(
         fun predictAddress(
             owner: String,
             web3jTransactionManager: TransactionManager,
-            config: SafeConfig,
+            config: SafeConfig = SafeConfig.createDefaultConfig()
         ): String {
             owner.requireHexAddress()
             val nonce = BigInteger.ZERO
@@ -185,7 +187,6 @@ class SafeAccount private constructor(
         val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
         val validAfterBytes = Numeric.toBytesPadded(validAfter, 6)
         val validUntilBytes = Numeric.toBytesPadded(validUntil, 6)
-        val signatureDataHex = signatureData.toHexNoPrefix()
         val signature = "0x${validAfterBytes.toHexNoPrefix()}${validUntilBytes.toHexNoPrefix()}${signatureData.toHexNoPrefix()}"
         return signature.hexStringToByteArray()
     }

@@ -40,8 +40,7 @@ class SimpleBundlerClientTest {
 
     @Test
     fun ethEstimateUserOperationGas() {
-
-        every { httpResponseStub.getResponse() } returns """
+        every { httpResponseStub.getResponse(any()) } returns """
             {
                 "jsonrpc": "2.0",
                 "id": 1,
@@ -75,7 +74,7 @@ class SimpleBundlerClientTest {
 
     @Test
     fun ethSendUserOperation() {
-        every { httpResponseStub.getResponse() } returns """
+        every { httpResponseStub.getResponse(any()) } returns """
             {
                 "jsonrpc": "2.0",
                 "id": 1,

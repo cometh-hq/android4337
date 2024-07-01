@@ -11,7 +11,7 @@ import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.safe.TestsData
 import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
-import io.cometh.android4337.utils.toAddress
+import io.cometh.android4337.utils.hexStringToAddress
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -112,7 +112,7 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".toAddress(),
+            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexStringToAddress(),
             value = BigInteger.ZERO,
             data = "0x06661abd".hexStringToByteArray()
         )
@@ -142,7 +142,7 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".toAddress(),
+            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexStringToAddress(),
             value = BigInteger.ONE,
             data = "0x".hexStringToByteArray()
         )
@@ -172,7 +172,7 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".toAddress(),
+            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexStringToAddress(),
             value = BigInteger.ONE,
             data = "0x".hexStringToByteArray()
         )
@@ -205,7 +205,7 @@ class SmartAccountTest {
         mockPaymasterSponsorUserOperation()
 
         val userOperation = safeAccountWithPaymaster.prepareUserOperation(
-            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".toAddress(),
+            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexStringToAddress(),
             value = BigInteger.ZERO,
             data = "0x06661abd".hexStringToByteArray()
         )

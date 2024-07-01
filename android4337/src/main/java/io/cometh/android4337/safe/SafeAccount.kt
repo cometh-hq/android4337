@@ -16,7 +16,7 @@ import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.toAddress
+import io.cometh.android4337.utils.hexStringToAddress
 import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.cometh.android4337.web3j.Create2
@@ -138,13 +138,13 @@ class SafeAccount private constructor(
             val nonce = BigInteger.ZERO
             val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
             val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException("Failed to get proxy creation code")
-            val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.toAddress()))
+            val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
             val setupData = getSetupFunctionData(
-                _owners = listOf(owner.toAddress()),
+                _owners = listOf(owner.hexStringToAddress()),
                 _threshold = BigInteger.ONE,
-                to = config.safeModuleSetupAddress.toAddress(),
+                to = config.safeModuleSetupAddress.hexStringToAddress(),
                 data = enableModulesData,
-                fallbackHandler = config.erc4337ModuleAddress.toAddress(),
+                fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
                 paymentToken = Address.DEFAULT,
                 payment = BigInteger.ZERO,
                 paymentReceiver = Address.DEFAULT
@@ -221,24 +221,24 @@ class SafeAccount private constructor(
     }
 
     override fun getFactoryAddress(): Address {
-        return config.safeProxyFactoryAddress.toAddress()
+        return config.safeProxyFactoryAddress.hexStringToAddress()
     }
 
     override fun getFactoryData(): ByteArray {
         val nonce = 0
-        val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.toAddress()))
+        val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
         val setupData = getSetupFunctionData(
-            _owners = listOf(credentials.address.toAddress()),
+            _owners = listOf(credentials.address.hexStringToAddress()),
             _threshold = BigInteger.ONE,
-            to = config.safeModuleSetupAddress.toAddress(),
+            to = config.safeModuleSetupAddress.hexStringToAddress(),
             data = enableModulesData,
-            fallbackHandler = config.erc4337ModuleAddress.toAddress(),
+            fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
             paymentToken = Address.DEFAULT,
             payment = BigInteger.ZERO,
             paymentReceiver = Address.DEFAULT
         )
         val createProxyWithNonceData = SafeUtils.getCreateProxyWithNonceFunctionData(
-            _singleton = config.safeSingletonL2Address.toAddress(),
+            _singleton = config.safeSingletonL2Address.hexStringToAddress(),
             initializer = setupData,
             saltNonce = nonce.toBigInteger()
         )

@@ -1,6 +1,7 @@
 package io.cometh.android4337.safe
 
 import androidx.annotation.WorkerThread
+import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.SmartAccount
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.UserOperation
@@ -73,10 +74,10 @@ class SafeAccount private constructor(
             address: String,
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            entryPointAddress: String,
             chainId: Int,
             web3Service: Service,
             config: SafeConfig = SafeConfig.createDefaultConfig(),
+            entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
             web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
@@ -100,10 +101,10 @@ class SafeAccount private constructor(
         fun createNewAccount(
             credentials: Credentials,
             bundlerClient: BundlerClient,
-            entryPointAddress: String,
             chainId: Int,
             web3Service: Service,
             config: SafeConfig = SafeConfig.createDefaultConfig(),
+            entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
             web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)

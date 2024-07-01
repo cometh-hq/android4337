@@ -29,7 +29,7 @@ abstract class SmartAccount(
     protected val transactionManager: TransactionManager,
 ) {
 
-    private val web3 = Web3j.build(web3Service)
+    protected val web3 = Web3j.build(web3Service)
 
     init {
         accountAddress.requireHexAddress()

@@ -49,7 +49,6 @@ class SafeAccountTest {
             address = TestsData.account1SafeAddress,
             credentials = TestsData.account1Credentials,
             bundlerClient,
-            entryPointAddress,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,
@@ -60,7 +59,6 @@ class SafeAccountTest {
             TestsData.account2SafeAddress,
             TestsData.account2Credentials,
             bundlerClient,
-            entryPointAddress,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,
@@ -75,7 +73,6 @@ class SafeAccountTest {
         val safeAccount = SafeAccount.createNewAccount(
             credentials = TestsData.account1Credentials,
             bundlerClient,
-            entryPointAddress,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,

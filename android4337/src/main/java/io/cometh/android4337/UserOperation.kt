@@ -73,7 +73,7 @@ fun UserOperation.toMap(): Map<String, String> {
         map["paymaster"] = this.paymaster!!
         if (this.paymasterVerificationGasLimit != null) map["paymasterVerificationGasLimit"] = this.paymasterVerificationGasLimit!!
         if (this.paymasterPostOpGasLimit != null) map["paymasterPostOpGasLimit"] = this.paymasterPostOpGasLimit!!
-        if (this.paymasterData != null) map["paymasterAndData"] = this.paymasterData!!
+        if (this.paymasterData != null) map["paymasterData"] = this.paymasterData!!
     }
     return map
 }

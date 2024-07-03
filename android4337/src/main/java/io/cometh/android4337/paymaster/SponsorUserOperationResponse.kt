@@ -7,8 +7,6 @@ import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.ObjectReader
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
 import org.web3j.protocol.ObjectMapperFactory
 import org.web3j.protocol.core.Response
 import java.io.IOException
@@ -33,7 +31,7 @@ class SponsorUserOperationResponse : Response<SponsorUserOperation>() {
 
 data class SponsorUserOperation @JsonCreator constructor(
     @JsonProperty("paymaster") val paymaster: String,
-    @JsonProperty("paymasterAndData") val paymasterAndData: String,
+    @JsonProperty("paymasterData") val paymasterData: String,
     @JsonProperty("paymasterVerificationGasLimit") val paymasterVerificationGasLimit: String,
     @JsonProperty("paymasterPostOpGasLimit") val paymasterPostOpGasLimit: String,
     @JsonProperty("preVerificationGas") val preVerificationGas: String,

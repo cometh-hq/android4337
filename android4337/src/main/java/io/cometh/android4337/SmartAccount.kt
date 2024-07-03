@@ -90,7 +90,7 @@ abstract class SmartAccount(
             }
             userOperation.apply {
                 paymaster = resp.result.paymaster
-                paymasterAndData = resp.result.paymasterAndData
+                paymasterData = resp.result.paymasterData
                 paymasterVerificationGasLimit = resp.result.paymasterVerificationGasLimit
                 paymasterPostOpGasLimit = resp.result.paymasterPostOpGasLimit
                 preVerificationGas = resp.result.preVerificationGas

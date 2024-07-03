@@ -28,7 +28,7 @@ class SimpleBundlerClientTest {
         verificationGasLimit = "0x1b247",
         maxFeePerGas = "0x01e3fb094e",
         maxPriorityFeePerGas = "0x53cd81aa",
-        paymasterAndData = "0x",
+        paymasterData = "0x",
         signature = "0x0000000000000000000000004232f7414022b3da2b1b3fc2d82d40a10eefc29c913c6801c1827dcb1c3735c8065234a4435ec0ca3a13786ecd683320661a5abb2b1dd2c2b3fc8dcf1473fcd81c"
     )
 

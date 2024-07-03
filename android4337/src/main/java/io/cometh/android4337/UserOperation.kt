@@ -4,7 +4,6 @@ import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.removeOx
 import io.cometh.android4337.utils.requireHex
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.utils.toHexNoPrefix
 import org.web3j.utils.Numeric
 
@@ -20,7 +19,7 @@ data class UserOperation(
     var maxFeePerGas: String,
     var maxPriorityFeePerGas: String,
     var paymaster: String? = null,
-    var paymasterAndData: String? = null,
+    var paymasterData: String? = null,
     var paymasterVerificationGasLimit: String? = null,
     var paymasterPostOpGasLimit: String? = null,
     var signature: String? = null
@@ -37,7 +36,7 @@ data class UserOperation(
         factory?.requireHexAddress()
         factoryData?.requireHex()
         paymaster?.requireHexAddress()
-        paymasterAndData?.requireHex()
+        paymasterData?.requireHex()
         paymasterVerificationGasLimit?.requireHex()
         paymasterPostOpGasLimit?.requireHex()
     }
@@ -50,10 +49,10 @@ fun UserOperation.getInitCode(): String {
 }
 
 fun UserOperation.getPaymasterAndData(): String {
-    if (paymaster == null || paymasterAndData == null || paymasterVerificationGasLimit == null || paymasterPostOpGasLimit == null) return "0x"
+    if (paymaster == null || paymasterData == null || paymasterVerificationGasLimit == null || paymasterPostOpGasLimit == null) return "0x"
     val verificationGasLimit = Numeric.toBytesPadded(paymasterVerificationGasLimit!!.hexStringToBigInt(), 16)
     val postOpGasLimit = Numeric.toBytesPadded(paymasterPostOpGasLimit!!.hexStringToBigInt(), 16)
-    return "0x${paymaster!!.lowercase().removeOx()}${verificationGasLimit.toHexNoPrefix()}${postOpGasLimit.toHexNoPrefix()}${paymasterAndData!!.removeOx()}"
+    return "0x${paymaster!!.lowercase().removeOx()}${verificationGasLimit.toHexNoPrefix()}${postOpGasLimit.toHexNoPrefix()}${paymasterData!!.removeOx()}"
 }
 
 fun UserOperation.toMap(): Map<String, String> {
@@ -74,7 +73,7 @@ fun UserOperation.toMap(): Map<String, String> {
         map["paymaster"] = this.paymaster!!
         if (this.paymasterVerificationGasLimit != null) map["paymasterVerificationGasLimit"] = this.paymasterVerificationGasLimit!!
         if (this.paymasterPostOpGasLimit != null) map["paymasterPostOpGasLimit"] = this.paymasterPostOpGasLimit!!
-        if (this.paymasterAndData != null) map["paymasterAndData"] = this.paymasterAndData!!
+        if (this.paymasterData != null) map["paymasterAndData"] = this.paymasterData!!
     }
     return map
 }

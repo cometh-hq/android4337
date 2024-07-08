@@ -49,9 +49,11 @@ publishing {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.credentials)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     api("org.web3j:core:4.8.9-android")
     testImplementation("io.mockk:mockk:1.13.11")
+    implementation("androidx.credentials:credentials:1.2.2")
 }

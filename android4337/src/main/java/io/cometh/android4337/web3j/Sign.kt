@@ -7,8 +7,11 @@ import org.web3j.crypto.StructuredDataEncoder
 
 object Sign {
     fun signTypedData(jsonData: String, keyPair: ECKeyPair): SignatureData {
+        return Sign.signMessage(hashTypedData(jsonData), keyPair, false)
+    }
+
+    fun hashTypedData(jsonData: String): ByteArray {
         val dataEncoder = StructuredDataEncoder(jsonData)
-        val hashStructuredData = dataEncoder.hashStructuredData()
-        return Sign.signMessage(hashStructuredData, keyPair, false)
+        return dataEncoder.hashStructuredData()
     }
 }

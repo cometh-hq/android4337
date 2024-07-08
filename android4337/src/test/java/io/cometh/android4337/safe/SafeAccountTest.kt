@@ -150,6 +150,21 @@ class SafeAccountTest {
         assertEquals(expected, signature.toHex())
     }
 
+    @Test
+    fun signOperationWithPasskey() {
+        val userOperation = UserOperation(
+            sender = "0xcfe1e7242dF565f031e1D3F645169Dda9D1230d2",
+            nonce = "0x00",
+            callData = "0x7bb374280000000000000000000000000338dcd5512ae8f3c481c33eb4b6eedf632d1d2f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000406661abd00000000000000000000000000000000000000000000000000000000",
+            preVerificationGas = "0xea60",
+            callGasLimit = "0x1e8480",
+            verificationGasLimit = "0x07a120",
+            maxFeePerGas = "0x02ee7c55e2",
+            maxPriorityFeePerGas = "0x1f2ecf7f",
+        )
+        val signature = safeAccount2.signOperation(userOperation, EntryPointContract.ENTRY_POINT_ADDRESS_V7)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun fromAddress() {
         SafeAccount.fromAddress(

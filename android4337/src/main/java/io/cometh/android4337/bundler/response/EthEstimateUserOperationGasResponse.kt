@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.ObjectReader
-import io.cometh.android4337.utils.hexStringToBigInt
 import org.web3j.protocol.ObjectMapperFactory
 import org.web3j.protocol.core.Response
 import java.io.IOException

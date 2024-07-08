@@ -9,9 +9,9 @@ import io.cometh.android4337.paymaster.SponsorUserOperation
 import io.cometh.android4337.paymaster.SponsorUserOperationResponse
 import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.safe.TestsData
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
-import io.cometh.android4337.utils.hexStringToAddress
+import io.cometh.android4337.utils.hexToBigInt
+import io.cometh.android4337.utils.hexToByteArray
+import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -112,9 +112,9 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexStringToAddress(),
+            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexToAddress(),
             value = BigInteger.ZERO,
-            data = "0x06661abd".hexStringToByteArray()
+            data = "0x06661abd".hexToByteArray()
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
@@ -142,9 +142,9 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexStringToAddress(),
+            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexToAddress(),
             value = BigInteger.ONE,
-            data = "0x".hexStringToByteArray()
+            data = "0x".hexToByteArray()
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
@@ -172,9 +172,9 @@ class SmartAccountTest {
         mockBundlerEstimateUserOperation()
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
-            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexStringToAddress(),
+            to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexToAddress(),
             value = BigInteger.ONE,
-            data = "0x".hexStringToByteArray()
+            data = "0x".hexToByteArray()
         )
 
         assertEquals(safeAccountWithoutPaymaster.accountAddress, userOperation.sender)
@@ -205,9 +205,9 @@ class SmartAccountTest {
         mockPaymasterSponsorUserOperation()
 
         val userOperation = safeAccountWithPaymaster.prepareUserOperation(
-            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexStringToAddress(),
+            to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexToAddress(),
             value = BigInteger.ZERO,
-            data = "0x06661abd".hexStringToByteArray()
+            data = "0x06661abd".hexToByteArray()
         )
 
         assertEquals(safeAccountWithPaymaster.accountAddress, userOperation.sender)
@@ -237,8 +237,8 @@ class SmartAccountTest {
         maxPriorityFeePerGas: String = "0x53cd81aa"
     ) {
         every { gasPriceProvider.getGasPrice() } returns GasPrice(
-            maxFeePerGas = maxFeePerGas.hexStringToBigInt(),
-            maxPriorityFeePerGas = maxPriorityFeePerGas.hexStringToBigInt()
+            maxFeePerGas = maxFeePerGas.hexToBigInt(),
+            maxPriorityFeePerGas = maxPriorityFeePerGas.hexToBigInt()
         )
     }
 

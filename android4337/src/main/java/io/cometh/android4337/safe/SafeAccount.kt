@@ -18,8 +18,10 @@ import io.cometh.android4337.utils.hexStringToBigInt
 import io.cometh.android4337.utils.hexStringToByteArray
 import io.cometh.android4337.utils.requireHexAddress
 import io.cometh.android4337.utils.hexStringToAddress
+import io.cometh.android4337.utils.toByteArray
 import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.utils.toHexNoPrefix
+import io.cometh.android4337.web3j.AbiEncoder
 import io.cometh.android4337.web3j.Create2
 import io.cometh.android4337.web3j.Sign
 import org.web3j.abi.FunctionEncoder
@@ -30,7 +32,9 @@ import org.web3j.abi.datatypes.DynamicArray
 import org.web3j.abi.datatypes.DynamicBytes
 import org.web3j.abi.datatypes.Function
 import org.web3j.abi.datatypes.Type
+import org.web3j.abi.datatypes.generated.Bytes32
 import org.web3j.abi.datatypes.generated.Uint256
+import org.web3j.abi.datatypes.generated.Uint48
 import org.web3j.abi.datatypes.generated.Uint8
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.Hash
@@ -151,10 +155,14 @@ class SafeAccount private constructor(
                 paymentReceiver = Address.DEFAULT
             )
             val keccak256Setup = Hash.sha3(setupData)
-            val saltHash = "${keccak256Setup.toHexNoPrefix()}${Numeric.toBytesPadded(nonce, 32).toHexNoPrefix()}"
+            val saltHash = AbiEncoder.encodePackedParameters(listOf(Bytes32(keccak256Setup), Uint256(nonce)))
             val salt = Hash.sha3(saltHash)
-            val safeSingletonL2AddressEncoded = Numeric.toBytesPadded(config.safeSingletonL2Address.hexStringToBigInt(), 32)
-            val deploymentCode = "${proxyCreationCode.toHex()}${safeSingletonL2AddressEncoded.toHexNoPrefix()}"
+            val deploymentCode = AbiEncoder.encodePackedParameters(
+                listOf(
+                    DynamicBytes(proxyCreationCode),
+                    Uint256(config.safeSingletonL2Address.hexStringToBigInt())
+                )
+            )
             val keccak256DeploymentCode = Hash.sha3(deploymentCode)
             val proxyAddress = Create2.getCreate2Address(config.safeProxyFactoryAddress, salt, keccak256DeploymentCode)
             return proxyAddress
@@ -186,9 +194,13 @@ class SafeAccount private constructor(
             entryPointAddress = entryPointAddress
         )
         val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
-        val validAfterBytes = Numeric.toBytesPadded(validAfter, 6)
-        val validUntilBytes = Numeric.toBytesPadded(validUntil, 6)
-        val signature = "0x${validAfterBytes.toHexNoPrefix()}${validUntilBytes.toHexNoPrefix()}${signatureData.toHexNoPrefix()}"
+        val signature = AbiEncoder.encodePackedParameters(
+            listOf(
+                Uint48(validAfter),
+                Uint48(validUntil),
+                DynamicBytes(signatureData.toByteArray())
+            )
+        )
         return signature.hexStringToByteArray()
     }
 

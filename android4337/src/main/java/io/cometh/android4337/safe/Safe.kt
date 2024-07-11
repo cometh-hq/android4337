@@ -1,5 +1,7 @@
 package io.cometh.android4337.safe
 
+import io.cometh.android4337.passkey.PassKey
+import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.toBytes
 import org.web3j.abi.FunctionEncoder
@@ -106,6 +108,42 @@ object Safe {
         val function = Function("configure", inputParams, outputParams)
         return FunctionEncoder.encode(function).hexToByteArray()
     }
+
+    fun getSafeInitializer(
+        owner: Address,
+        config: SafeConfig,
+        passKey: PassKey? = null
+    ): ByteArray {
+        val setupDataField = if (passKey != null) {
+            val sharedSignerConfigureCallData = getSharedSignerConfigureCallData(
+                x = passKey.x,
+                y = passKey.y,
+                verifiers = config.safeP256VerifierAddress.hexToBigInt()
+            )
+            getMultiSendFunctionData(
+                safeModuleSetupAddress = config.getSafeModuleSetupAddress(),
+                safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
+                enableModuleData = getEnableModulesFunctionData(listOf(config.getErc4337ModuleAddress())),
+                sharedSignerConfigureData = sharedSignerConfigureCallData
+            )
+        } else {
+            getEnableModulesFunctionData(listOf(config.getErc4337ModuleAddress()))
+        }
+        val to = if (passKey != null) config.getSafeMultiSendAddress() else config.getSafeModuleSetupAddress()
+        val safeInitializer = getSetupFunctionData(
+            _owners = listOf(owner),
+            _threshold = BigInteger.ONE,
+            to = to,
+            data = setupDataField,
+            fallbackHandler = config.getErc4337ModuleAddress(),
+            paymentToken = Address.DEFAULT,
+            payment = BigInteger.ZERO,
+            paymentReceiver = Address.DEFAULT
+        )
+
+        return safeInitializer
+    }
+
 
 }
 

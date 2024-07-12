@@ -47,8 +47,7 @@ data class UserOperation(
 
 fun UserOperation.getInitCode(): String {
     if (factory == null || factoryData == null) return "0x"
-    val initCode = "0x${factory.lowercase().removeOx()}${factoryData.removeOx()}"
-    return initCode
+    return "0x${factory.lowercase().removeOx()}${factoryData.removeOx()}"
 }
 
 fun UserOperation.getPaymasterAndData(): String {

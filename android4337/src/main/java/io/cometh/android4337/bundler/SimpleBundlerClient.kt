@@ -16,7 +16,6 @@ val DUMMY_SIGNATURE =
 class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClient {
 
     override fun ethSendUserOperation(userOperation: UserOperation, entryPointAddress: String): Request<Any, EthSendUserOperationResponse> {
-        val data = userOperation.toMap()
         return Request(
             "eth_sendUserOperation",
             listOf(userOperation.toMap(), entryPointAddress),

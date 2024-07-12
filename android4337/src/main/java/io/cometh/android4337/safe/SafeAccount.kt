@@ -12,6 +12,7 @@ import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.passkey.PassKey
 import io.cometh.android4337.passkey.PassKeySigner
+import io.cometh.android4337.passkey.SafeSignature
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexToAddress
@@ -159,10 +160,6 @@ class SafeAccount private constructor(
 
     }
 
-    fun predictAddress() {
-
-    }
-
     override fun signOperation(
         userOperation: UserOperation, entryPointAddress: String
     ): ByteArray {
@@ -170,7 +167,7 @@ class SafeAccount private constructor(
         val validUntil = BigInteger.ZERO
         val json = buildSafeJsonEip712V7(
             chainId = chainId,
-            verifyingContract = config.erc4337ModuleAddress,
+            verifyingContract = config.safe4337ModuleAddress,
             sender = userOperation.sender,
             nonce = userOperation.nonce,
             initCode = userOperation.getInitCode(),
@@ -190,7 +187,19 @@ class SafeAccount private constructor(
             Sign.signTypedData(json, credentials.ecKeyPair).toByteArray()
         } else {
             val hash = Sign.hashTypedData(json)
-            runBlocking { return@runBlocking passKeySigner.sign(hash) }
+            runBlocking {
+                val passkeySignature = passKeySigner.sign(hash)
+                val signatureBytes = Safe.buildSignatureBytes(
+                    listOf(
+                        SafeSignature(
+                            signer = config.safeWebAuthnSharedSignerAddress,
+                            data = passkeySignature,
+                            dynamic = true
+                        )
+                    )
+                )
+                return@runBlocking signatureBytes.hexToByteArray()
+            }
         }
 
         val signature = AbiEncoder.encodePackedParameters(
@@ -231,10 +240,6 @@ class SafeAccount private constructor(
         return config.safeProxyFactoryAddress.hexToAddress()
     }
 
-    private fun isPassKeySigner(): Boolean {
-        return passKeySigner != null
-    }
-
     override fun getFactoryData(): ByteArray {
         val nonce = 0
         val safeInitializer = Safe.getSafeInitializer(
@@ -243,7 +248,9 @@ class SafeAccount private constructor(
             passKey = passKeySigner?.let { passKeySigner.getPasskey() ?: throw IllegalArgumentException("cannot happened") }
         )
         val createProxyWithNonceData = Safe.getCreateProxyWithNonceFunctionData(
-            _singleton = config.getSafeSingletonL2Address(), initializer = safeInitializer, saltNonce = nonce.toBigInteger()
+            _singleton = config.getSafeSingletonL2Address(),
+            initializer = safeInitializer,
+            saltNonce = nonce.toBigInteger()
         )
         return createProxyWithNonceData
     }

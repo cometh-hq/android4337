@@ -1,19 +1,21 @@
 package io.cometh.android4337.safe
 
 import io.cometh.android4337.passkey.PassKey
+import io.cometh.android4337.passkey.SafeSignature
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
-import io.cometh.android4337.utils.toBytes
+import io.cometh.android4337.utils.removeOx
+import io.cometh.android4337.web3j.AbiEncoder
 import org.web3j.abi.FunctionEncoder
 import org.web3j.abi.TypeReference
 import org.web3j.abi.datatypes.Address
 import org.web3j.abi.datatypes.DynamicArray
 import org.web3j.abi.datatypes.DynamicBytes
-import org.web3j.abi.datatypes.DynamicStruct
 import org.web3j.abi.datatypes.Function
+import org.web3j.abi.datatypes.StaticStruct
 import org.web3j.abi.datatypes.generated.Uint176
 import org.web3j.abi.datatypes.generated.Uint256
-import org.web3j.utils.Numeric
+import org.web3j.abi.datatypes.generated.Uint8
 import java.math.BigInteger
 
 object Safe {
@@ -86,14 +88,18 @@ object Safe {
     fun encodeMultiSendTransactions(transactions: List<MultiSendTransaction>): ByteArray {
         //'uint8', 'address', 'uint256', 'uint256', 'bytes'
         val result = transactions.map {
-            val op = Numeric.toBytesPadded(it.op.toBigInteger(), 1)
-            val to = it.to.toBytes()
-            val value = Numeric.toBytesPadded(it.value, 32)
-            val size = Numeric.toBytesPadded(it.data.size.toBigInteger(), 32)
-            val data = it.data
-            return@map op + to + value + size + data
+            val size = it.data.size.toBigInteger()
+            AbiEncoder.encodePackedParameters(
+                listOf(
+                    Uint8(it.op.toBigInteger()),
+                    it.to,
+                    Uint256(it.value ?: BigInteger.ZERO),
+                    Uint256(size),
+                    DynamicBytes(it.data)
+                )
+            ).removeOx()
         }
-        return result.reduce { acc, bytes -> acc + bytes }
+        return "0x${result.joinToString("")}".hexToByteArray()
     }
 
     fun getSharedSignerConfigureCallData(
@@ -102,7 +108,11 @@ object Safe {
         verifiers: BigInteger
     ): ByteArray {
         val inputParams = listOf(
-            DynamicStruct(Uint256(x), Uint256(y), Uint176(verifiers))
+            StaticStruct(
+                Uint256(x),
+                Uint256(y),
+                Uint176(verifiers)
+            )
         )
         val outputParams = emptyList<TypeReference<*>>()
         val function = Function("configure", inputParams, outputParams)
@@ -114,28 +124,30 @@ object Safe {
         config: SafeConfig,
         passKey: PassKey? = null
     ): ByteArray {
+        val enableModuleData = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress()))
         val setupDataField = if (passKey != null) {
-            val sharedSignerConfigureCallData = getSharedSignerConfigureCallData(
-                x = passKey.x,
-                y = passKey.y,
-                verifiers = config.safeP256VerifierAddress.hexToBigInt()
-            )
             getMultiSendFunctionData(
                 safeModuleSetupAddress = config.getSafeModuleSetupAddress(),
                 safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
-                enableModuleData = getEnableModulesFunctionData(listOf(config.getErc4337ModuleAddress())),
-                sharedSignerConfigureData = sharedSignerConfigureCallData
+                enableModuleData = enableModuleData,
+                sharedSignerConfigureData = getSharedSignerConfigureCallData(
+                    x = passKey.x,
+                    y = passKey.y,
+                    verifiers = config.safeP256VerifierAddress.hexToBigInt()
+                )
             )
         } else {
-            getEnableModulesFunctionData(listOf(config.getErc4337ModuleAddress()))
+            enableModuleData
         }
         val to = if (passKey != null) config.getSafeMultiSendAddress() else config.getSafeModuleSetupAddress()
+        //TODO check if we need to pass owner also as owners ?
+        val owners = if (passKey != null) listOf(config.getSafeWebAuthnSharedSignerAddress(), owner) else listOf(owner)
         val safeInitializer = getSetupFunctionData(
-            _owners = listOf(owner),
+            _owners = owners,
             _threshold = BigInteger.ONE,
             to = to,
             data = setupDataField,
-            fallbackHandler = config.getErc4337ModuleAddress(),
+            fallbackHandler = config.getSafe4337ModuleAddress(),
             paymentToken = Address.DEFAULT,
             payment = BigInteger.ZERO,
             paymentReceiver = Address.DEFAULT
@@ -144,16 +156,27 @@ object Safe {
         return safeInitializer
     }
 
+    fun buildSignatureBytes(signatures: List<SafeSignature>): String {
+        val SIGNATURE_LENGTH_BYTES = 65
+        val sortedSignatures = signatures.sortedBy { it.signer.lowercase() }
 
-}
+        var signatureBytes = "0x"
+        var dynamicBytes = ""
 
-data class MultiSendTransaction(
-    val op: Int,
-    val to: Address,
-    val value: BigInteger?,
-    val data: ByteArray
-) {
-    init {
-        require(op in 1..2)
+        for (sig in sortedSignatures) {
+            if (sig.dynamic) {
+                val dynamicPartPosition = (sortedSignatures.size * SIGNATURE_LENGTH_BYTES + dynamicBytes.length / 2).toString(16).padStart(64, '0')
+                val dynamicPartLength = (sig.data.slice(2 until sig.data.length).length / 2).toString(16).padStart(64, '0')
+                val staticSignature = "${sig.signer.slice(2 until sig.signer.length).padStart(64, '0')}${dynamicPartPosition}00"
+                val dynamicPartWithLength = "$dynamicPartLength${sig.data.slice(2 until sig.data.length)}"
+                signatureBytes += staticSignature
+                dynamicBytes += dynamicPartWithLength
+            } else {
+                signatureBytes += sig.data.slice(2 until sig.data.length)
+            }
+        }
+
+        return signatureBytes + dynamicBytes
     }
+
 }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +26,6 @@ import androidx.credentials.CredentialManager
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.passkey.PassKeySigner
-import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
@@ -37,7 +35,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.web3j.crypto.Credentials
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.http.HttpService
+import org.web3j.utils.Convert
 
 @Composable
 fun SignUpScreen() {
@@ -45,11 +46,12 @@ fun SignUpScreen() {
     val credentialManager: CredentialManager by lazy { CredentialManager.create(context) }
     val coroutineScope = rememberCoroutineScope()
     var signUpResult by remember { mutableStateOf("") }
+    var safeAddress by remember { mutableStateOf("") }
+    var safeBalance by remember { mutableStateOf("") }
     var safeAccount: SafeAccount? by remember { mutableStateOf(null) }
 
     val chainId = 84532
     val rpcService = HttpService("https://base-sepolia.g.alchemy.com/v2/UEwp8FtpdjcL5oekF6CjMzxe1D3768XU")
-//    val bundlerClient = SimpleBundlerClient(HttpService("https://base-sepolia.bundler.cometh.io?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx"))
     val bundlerClient = SimpleBundlerClient(HttpService("https://bundler.cometh.io/$chainId/?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx"))
     val credentials = Credentials.create("4bddaeef5fb283e847abf0bd480a771b7695d70f413b248dc56c0bb1bb4a0b86")
 //    val paymasterClient = PaymasterClient("https://paymaster.cometh.io/$chainId?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx")
@@ -61,6 +63,20 @@ fun SignUpScreen() {
         credentialManager = credentialManager,
     )
     Log.i("SignUpScreen", "publicKey=${credentials.address}")
+
+    LaunchedEffect(safeAddress) {
+        coroutineScope.launch {
+            withContext(Dispatchers.IO) {
+                if (safeAddress.isNotEmpty()) {
+                    Log.i("SignUpScreen", "ethGetBalance=$safeAddress")
+                    val balance = Web3j.build(rpcService).ethGetBalance(safeAddress, DefaultBlockParameterName.LATEST).send().balance
+                    // convert balance to eth
+                    val ethBalance = Convert.fromWei(balance.toString(), Convert.Unit.ETHER)
+                    safeBalance = "$ethBalance ETH"
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         val x = prefs.getString("x", null)
@@ -76,14 +92,15 @@ fun SignUpScreen() {
                         chainId = chainId,
                         web3Service = rpcService,
                         passKeySigner = passKeySigner,
+//                        gasPriceProvider = RPCGasEstimator(rpcService),
 //                        paymasterClient = paymasterClient
                     )
                     signUpResult = """
                         Passkey Loaded ✅
                         x=${passKey.x.toHex()}
                         y=${passKey.y.toHex()}
-                        SafeAddress: ${safeAccount!!.accountAddress}
                     """.trimIndent()
+                    safeAddress = safeAccount!!.accountAddress
                     Log.i("SignUpScreen", signUpResult)
                 }
             }
@@ -97,7 +114,9 @@ fun SignUpScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Sign Up with Passkey")
-        Text(text = "PublicKey: ${credentials.address}")
+        Text(text = "PublicKey: ${credentials.address}", fontSize = 12.sp)
+        Text(text = "Safe Address: $safeAddress", fontSize = 12.sp)
+        Text(text = "Safe Balance: $safeBalance", fontSize = 12.sp)
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
             coroutineScope.launch {
@@ -117,8 +136,8 @@ fun SignUpScreen() {
                         Passkey Created ✅
                         x=${passKey.x.toHex()}
                         y=${passKey.y.toHex()}
-                        SafeAddress: ${safeAccount!!.accountAddress}
                     """.trimIndent()
+                    safeAddress = safeAccount!!.accountAddress
 
                     prefs.edit {
                         putString("x", passKey.x.toHex())
@@ -136,12 +155,16 @@ fun SignUpScreen() {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     try {
-                        safeAccount!!.sendUserOperation(
+                        val userOpHash = safeAccount!!.sendUserOperation(
                             to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103".hexToAddress(),
                             value = 0.toBigInteger(),
-                            data = "0x".hexToByteArray()
+                            data = "0xaaaa".hexToByteArray()
                         )
-                        signUpResult = "User Operation Sent ✅"
+                        signUpResult = """
+                            User Operation Sent ✅
+                            UserOpHash: $userOpHash
+                        """.trimIndent()
+                        Log.i("SignUpScreen", signUpResult)
                     } catch (e: SmartAccountException) {
                         signUpResult = "❌ Error: ${e.message}"
                         Log.e("SignUpScreen", "Error: ${e.message}", e)

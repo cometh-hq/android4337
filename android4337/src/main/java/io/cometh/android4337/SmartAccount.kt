@@ -73,7 +73,9 @@ abstract class SmartAccount(
             }
         }
 
+        userOperation.signature = getDummySignature()
         val estimateResp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
+        userOperation.signature = null
         if (estimateResp.hasError()) {
             throw SmartAccountException("Bundler cannot estimate user operation gas, code: ${estimateResp.error!!.code} ${estimateResp.error.message}")
         }
@@ -84,7 +86,9 @@ abstract class SmartAccount(
         }
 
         if (paymasterClient != null) {
+            userOperation.signature = getDummySignature()
             val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
+            userOperation.signature = null
             if (resp.hasError()) {
                 throw SmartAccountException("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")
             }
@@ -125,4 +129,5 @@ abstract class SmartAccount(
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray
     abstract fun getFactoryAddress(): Address
     abstract fun getFactoryData(): ByteArray
+    abstract fun getDummySignature(): String
 }

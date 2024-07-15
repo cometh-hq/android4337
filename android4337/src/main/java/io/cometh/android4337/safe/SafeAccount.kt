@@ -14,6 +14,10 @@ import io.cometh.android4337.passkey.PassKey
 import io.cometh.android4337.passkey.PassKeySigner
 import io.cometh.android4337.passkey.SafeSignature
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.Safe.DUMMY_AUTHENTICATOR_DATA
+import io.cometh.android4337.safe.Safe.DUMMY_CLIENT_DATA_FIELDS
+import io.cometh.android4337.safe.Safe.ECDSA_DUMMY_SIGNATURE
+import io.cometh.android4337.safe.Safe.getSignatureBytes
 import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
@@ -208,6 +212,33 @@ class SafeAccount private constructor(
             )
         )
         return signature.hexToByteArray()
+    }
+
+    override fun getDummySignature(): String {
+        if (passKeySigner != null) {
+            val signature = Safe.buildSignatureBytes(
+                listOf(
+                    SafeSignature(
+                        signer = config.safeWebAuthnSharedSignerAddress,
+                        data = getSignatureBytes(
+                            DUMMY_AUTHENTICATOR_DATA.toByteArray(),
+                            DUMMY_CLIENT_DATA_FIELDS,
+                            "0xecececececececececececececececececececececececececececececececec".hexToBigInt(),
+                            "0xd5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5ad5af".hexToBigInt()
+                        ),
+                        dynamic = true
+                    )
+                )
+            )
+            // uint48, uint48, bytes
+            return AbiEncoder.encodePackedParameters(
+                listOf(
+                    Uint48(BigInteger.ZERO),
+                    Uint48(BigInteger.ZERO),
+                    DynamicBytes(signature.hexToByteArray()),
+                )
+            )
+        } else return ECDSA_DUMMY_SIGNATURE
     }
 
     @WorkerThread

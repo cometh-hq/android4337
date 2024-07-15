@@ -16,9 +16,17 @@ import org.web3j.abi.datatypes.StaticStruct
 import org.web3j.abi.datatypes.generated.Uint176
 import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.abi.datatypes.generated.Uint8
+import org.web3j.utils.Numeric
 import java.math.BigInteger
 
 object Safe {
+    const val DUMMY_AUTHENTICATOR_DATA = "0xfefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe04fefefefe"
+    val DUMMY_CLIENT_DATA_FIELDS = """
+        "origin":"http://safe.global"
+        "padding":"This pads the clientDataJSON so that we can leave room for additional implementation specific fields for a more accurate 'preVerificationGas' estimate."
+    """.trimIndent()
+    const val ECDSA_DUMMY_SIGNATURE = "0xecececececececececececececececececececececececececececececececec"
+
     fun getEnableModulesFunctionData(moduleAddresses: List<Address>): ByteArray {
         val inputParams = listOf(DynamicArray(Address::class.java, moduleAddresses))
         val outputParams = emptyList<TypeReference<*>>()
@@ -177,6 +185,37 @@ object Safe {
         }
 
         return signatureBytes + dynamicBytes
+    }
+
+    fun getSignatureBytes(
+        authenticatorData: ByteArray,
+        clientDataFields: String,
+        r: BigInteger,
+        s: BigInteger
+    ): String {
+        fun encodeUint256(x: BigInteger): String {
+            return x.toString(16).padStart(64, '0')
+        }
+        fun byteSize(data: ByteArray): Int {
+            return 32 * (Math.ceil(data.size / 32.0).toInt() + 1) // +1 is for the length parameter
+        }
+        fun encodeBytes(data: ByteArray): String {
+            val lengthHex = encodeUint256(BigInteger.valueOf(data.size.toLong()))
+            val dataHex = Numeric.toHexString(data).substring(2)
+            return (lengthHex + dataHex).padEnd(byteSize(data) * 2, '0')
+        }
+        // authenticatorData starts after the first four words.
+        val authenticatorDataOffset = 32 * 4
+        // clientDataFields starts immediately after the authenticator data.
+        val clientDataFieldsOffset = authenticatorDataOffset + byteSize(authenticatorData)
+
+        // Convert clientDataFields to ByteArray
+        val clientDataFieldsBytes = clientDataFields.toByteArray()
+
+        return "0x${encodeUint256(BigInteger.valueOf(authenticatorDataOffset.toLong()))}" +
+                "${encodeUint256(BigInteger.valueOf(clientDataFieldsOffset.toLong()))}" +
+                "${encodeUint256(r)}${encodeUint256(s)}" +
+                "${encodeBytes(authenticatorData)}${encodeBytes(clientDataFieldsBytes)}"
     }
 
 }

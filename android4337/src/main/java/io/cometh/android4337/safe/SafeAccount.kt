@@ -12,7 +12,6 @@ import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.passkey.PassKey
 import io.cometh.android4337.passkey.PassKeySigner
-import io.cometh.android4337.passkey.SafeSignature
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.Safe.DUMMY_AUTHENTICATOR_DATA
 import io.cometh.android4337.safe.Safe.DUMMY_CLIENT_DATA_FIELDS

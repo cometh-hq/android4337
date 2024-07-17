@@ -25,62 +25,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             Android4337Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-//                    Column(
-//                        modifier = Modifier.padding(innerPadding)
-//                    ) {
-//                        Greeting(name = "Android")
-//                        Owners()
-//                    }
                     Surface {
                         SignUpScreen()
                     }
                 }
             }
         }
-    }
-}
-
-
-@Composable
-fun Owners(
-    mainViewModel: MainViewModel = viewModel()
-) {
-    Column {
-        Button(onClick = {
-            mainViewModel.fetchOwners()
-        }) {
-            Text("Fetch owners")
-        }
-        LazyColumn {
-            items(mainViewModel.owners.value) { owner ->
-                Text(owner)
-            }
-        }
-        Button(onClick = {
-            mainViewModel.sendUserOperation()
-        }) {
-            Text("Send UserOp")
-        }
-        Button(onClick = {
-            mainViewModel.sendUserOpWithPaymaster()
-        }) {
-            Text("Send UserOp With Paymaster")
-        }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Android4337Theme {
-        Greeting("Android")
     }
 }

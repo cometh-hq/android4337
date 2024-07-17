@@ -25,8 +25,8 @@ import androidx.core.content.edit
 import androidx.credentials.CredentialManager
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
-import io.cometh.android4337.passkey.PassKeySigner
 import io.cometh.android4337.safe.SafeAccount
+import io.cometh.android4337.safe.signer.passkey.PassKeySigner
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
@@ -91,7 +91,7 @@ fun SignUpScreen() {
                         bundlerClient = bundlerClient,
                         chainId = chainId,
                         web3Service = rpcService,
-                        passKeySigner = passKeySigner,
+                        signer = passKeySigner,
 //                        gasPriceProvider = RPCGasEstimator(rpcService),
 //                        paymasterClient = paymasterClient
                     )
@@ -128,7 +128,7 @@ fun SignUpScreen() {
                             bundlerClient = bundlerClient,
                             chainId = chainId,
                             web3Service = rpcService,
-                            passKeySigner = passKeySigner,
+                            signer = passKeySigner,
 //                            paymasterClient = paymasterClient
                         )
                     }

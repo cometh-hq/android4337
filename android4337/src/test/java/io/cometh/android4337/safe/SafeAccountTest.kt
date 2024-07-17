@@ -6,8 +6,8 @@ import io.cometh.android4337.HttpResponseStub
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
-import io.cometh.android4337.passkey.PassKey
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.signer.passkey.PassKey
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.toHex
 import io.mockk.MockKAnnotations
@@ -16,7 +16,6 @@ import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.web3j.protocol.Web3j
 import org.web3j.tx.TransactionManager
 
 class SafeAccountTest {
@@ -135,7 +134,7 @@ class SafeAccountTest {
                 y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
             )
         )
-        assertEquals("0xf47BCa04D6765398b831974481443994b120e6B5", address)
+        assertEquals("0xfF724471DcB34e42C715163B60A0881fAF7a9C96", address)
     }
 
     @Test

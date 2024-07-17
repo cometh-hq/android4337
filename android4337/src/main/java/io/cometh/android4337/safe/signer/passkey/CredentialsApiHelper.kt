@@ -1,4 +1,4 @@
-package io.cometh.android4337.passkey
+package io.cometh.android4337.safe.signer.passkey
 
 import android.content.Context
 import androidx.credentials.CreatePublicKeyCredentialRequest
@@ -8,8 +8,8 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.cometh.android4337.passkey.credentials.CreateCredentialResponse
-import io.cometh.android4337.passkey.credentials.GetCredentialAuthenticationResponse
+import io.cometh.android4337.safe.signer.passkey.credentials.CreateCredentialResponse
+import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthenticationResponse
 import io.cometh.android4337.utils.encodeBase64
 
 class CredentialsApiHelper(

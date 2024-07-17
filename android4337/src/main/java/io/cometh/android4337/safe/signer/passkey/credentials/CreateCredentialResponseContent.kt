@@ -1,8 +1,8 @@
-package io.cometh.android4337.passkey.credentials
+package io.cometh.android4337.safe.signer.passkey.credentials
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import io.cometh.android4337.passkey.PassKeyUtils
+import io.cometh.android4337.safe.signer.passkey.PassKeyUtils
 import io.cometh.android4337.utils.decodeBase64
 import java.math.BigInteger
 

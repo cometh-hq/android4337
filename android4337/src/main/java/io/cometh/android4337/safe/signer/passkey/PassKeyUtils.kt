@@ -1,4 +1,4 @@
-package io.cometh.android4337.passkey
+package io.cometh.android4337.safe.signer.passkey
 
 import org.bouncycastle.asn1.ASN1InputStream
 import org.bouncycastle.asn1.ASN1Integer

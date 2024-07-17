@@ -1,4 +1,4 @@
-package io.cometh.android4337.passkey.credentials
+package io.cometh.android4337.safe.signer.passkey.credentials
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty

@@ -1,7 +1,6 @@
 package io.cometh.android4337.safe
 
-import io.cometh.android4337.passkey.PassKey
-import io.cometh.android4337.passkey.SafeSignature
+import io.cometh.android4337.safe.signer.passkey.PassKey
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.removeOx
@@ -20,12 +19,6 @@ import org.web3j.utils.Numeric
 import java.math.BigInteger
 
 object Safe {
-    const val DUMMY_AUTHENTICATOR_DATA = "0xfefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe04fefefefe"
-    val DUMMY_CLIENT_DATA_FIELDS = """
-        "origin":"http://safe.global"
-        "padding":"This pads the clientDataJSON so that we can leave room for additional implementation specific fields for a more accurate 'preVerificationGas' estimate."
-    """.trimIndent()
-    const val ECDSA_DUMMY_SIGNATURE = "0xecececececececececececececececececececececececececececececececec"
 
     fun getEnableModulesFunctionData(moduleAddresses: List<Address>): ByteArray {
         val inputParams = listOf(DynamicArray(Address::class.java, moduleAddresses))
@@ -60,14 +53,10 @@ object Safe {
     }
 
     fun getCreateProxyWithNonceFunctionData(
-        _singleton: Address,
-        initializer: ByteArray,
-        saltNonce: BigInteger
+        _singleton: Address, initializer: ByteArray, saltNonce: BigInteger
     ): ByteArray {
         val inputParams = listOf(
-            _singleton,
-            DynamicBytes(initializer),
-            Uint256(saltNonce)
+            _singleton, DynamicBytes(initializer), Uint256(saltNonce)
         )
         val outputParams = emptyList<TypeReference<*>>()
         val function = Function("createProxyWithNonce", inputParams, outputParams)
@@ -76,10 +65,7 @@ object Safe {
 
     // multiSend
     fun getMultiSendFunctionData(
-        safeModuleSetupAddress: Address,
-        safeWebAuthnSharedSignerAddress: Address,
-        enableModuleData: ByteArray,
-        sharedSignerConfigureData: ByteArray
+        safeModuleSetupAddress: Address, safeWebAuthnSharedSignerAddress: Address, enableModuleData: ByteArray, sharedSignerConfigureData: ByteArray
     ): ByteArray {
         val encodedMultiSendTxs = encodeMultiSendTransactions(
             listOf(
@@ -99,11 +85,7 @@ object Safe {
             val size = it.data.size.toBigInteger()
             AbiEncoder.encodePackedParameters(
                 listOf(
-                    Uint8(it.op.toBigInteger()),
-                    it.to,
-                    Uint256(it.value ?: BigInteger.ZERO),
-                    Uint256(size),
-                    DynamicBytes(it.data)
+                    Uint8(it.op.toBigInteger()), it.to, Uint256(it.value ?: BigInteger.ZERO), Uint256(size), DynamicBytes(it.data)
                 )
             ).removeOx()
         }
@@ -111,15 +93,11 @@ object Safe {
     }
 
     fun getSharedSignerConfigureCallData(
-        x: BigInteger,
-        y: BigInteger,
-        verifiers: BigInteger
+        x: BigInteger, y: BigInteger, verifiers: BigInteger
     ): ByteArray {
         val inputParams = listOf(
             StaticStruct(
-                Uint256(x),
-                Uint256(y),
-                Uint176(verifiers)
+                Uint256(x), Uint256(y), Uint176(verifiers)
             )
         )
         val outputParams = emptyList<TypeReference<*>>()
@@ -129,39 +107,43 @@ object Safe {
 
     fun getSafeInitializer(
         owner: Address,
-        config: SafeConfig,
-        passKey: PassKey? = null
+        config: SafeConfig
     ): ByteArray {
-        val enableModuleData = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress()))
-        val setupDataField = if (passKey != null) {
-            getMultiSendFunctionData(
-                safeModuleSetupAddress = config.getSafeModuleSetupAddress(),
-                safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
-                enableModuleData = enableModuleData,
-                sharedSignerConfigureData = getSharedSignerConfigureCallData(
-                    x = passKey.x,
-                    y = passKey.y,
-                    verifiers = config.safeP256VerifierAddress.hexToBigInt()
-                )
-            )
-        } else {
-            enableModuleData
-        }
-        val to = if (passKey != null) config.getSafeMultiSendAddress() else config.getSafeModuleSetupAddress()
-        //TODO check if we need to pass owner also as owners ?
-        val owners = if (passKey != null) listOf(config.getSafeWebAuthnSharedSignerAddress(), owner) else listOf(owner)
-        val safeInitializer = getSetupFunctionData(
-            _owners = owners,
+        return getSetupFunctionData(
+            _owners = listOf(owner),
             _threshold = BigInteger.ONE,
-            to = to,
-            data = setupDataField,
+            to = config.getSafeModuleSetupAddress(),
+            data = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress())),
             fallbackHandler = config.getSafe4337ModuleAddress(),
             paymentToken = Address.DEFAULT,
             payment = BigInteger.ZERO,
             paymentReceiver = Address.DEFAULT
         )
+    }
 
-        return safeInitializer
+    fun getSafeInitializerWithPasskey(
+        config: SafeConfig,
+        passKey: PassKey
+    ): ByteArray {
+        return getSetupFunctionData(
+            _owners = listOf(config.getSafeWebAuthnSharedSignerAddress()),
+            _threshold = BigInteger.ONE,
+            to = config.getSafeMultiSendAddress(),
+            data = getMultiSendFunctionData(
+                safeModuleSetupAddress = config.getSafeModuleSetupAddress(),
+                safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
+                enableModuleData = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress())),
+                sharedSignerConfigureData = getSharedSignerConfigureCallData(
+                    x = passKey.x,
+                    y = passKey.y,
+                    verifiers = config.safeP256VerifierAddress.hexToBigInt()
+                )
+            ),
+            fallbackHandler = config.getSafe4337ModuleAddress(),
+            paymentToken = Address.DEFAULT,
+            payment = BigInteger.ZERO,
+            paymentReceiver = Address.DEFAULT
+        )
     }
 
     fun buildSignatureBytes(signatures: List<SafeSignature>): String {
@@ -196,9 +178,11 @@ object Safe {
         fun encodeUint256(x: BigInteger): String {
             return x.toString(16).padStart(64, '0')
         }
+
         fun byteSize(data: ByteArray): Int {
             return 32 * (Math.ceil(data.size / 32.0).toInt() + 1) // +1 is for the length parameter
         }
+
         fun encodeBytes(data: ByteArray): String {
             val lengthHex = encodeUint256(BigInteger.valueOf(data.size.toLong()))
             val dataHex = Numeric.toHexString(data).substring(2)
@@ -212,10 +196,11 @@ object Safe {
         // Convert clientDataFields to ByteArray
         val clientDataFieldsBytes = clientDataFields.toByteArray()
 
-        return "0x${encodeUint256(BigInteger.valueOf(authenticatorDataOffset.toLong()))}" +
-                "${encodeUint256(BigInteger.valueOf(clientDataFieldsOffset.toLong()))}" +
-                "${encodeUint256(r)}${encodeUint256(s)}" +
-                "${encodeBytes(authenticatorData)}${encodeBytes(clientDataFieldsBytes)}"
+        return "0x${encodeUint256(BigInteger.valueOf(authenticatorDataOffset.toLong()))}" + "${encodeUint256(BigInteger.valueOf(clientDataFieldsOffset.toLong()))}" + "${
+            encodeUint256(
+                r
+            )
+        }${encodeUint256(s)}" + "${encodeBytes(authenticatorData)}${encodeBytes(clientDataFieldsBytes)}"
     }
 
 }

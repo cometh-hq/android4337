@@ -1,7 +1,6 @@
 package io.cometh.android4337.passkey
 
 import android.content.Context
-import androidx.credentials.CredentialManager
 import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.signer.passkey.CredentialsApiHelper
 import io.cometh.android4337.safe.signer.passkey.PassKeySigner
@@ -46,7 +45,6 @@ class PassKeySignerTest {
         val signer = PassKeySigner(
             rpId = "cometh",
             context = mockk<Context>(),
-            credentialManager = mockk<CredentialManager>(),
             credentialsApiHelper = credentialsApiHelper,
             safeConfig = SafeConfig.createDefaultConfig()
         )

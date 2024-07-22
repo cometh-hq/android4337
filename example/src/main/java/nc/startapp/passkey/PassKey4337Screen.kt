@@ -60,7 +60,6 @@ fun SignUpScreen() {
     val passKeySigner = PassKeySigner(
         rpId = "passkey.startapp.nc",
         context = context,
-        credentialManager = credentialManager,
     )
     Log.i("SignUpScreen", "publicKey=${credentials.address}")
 

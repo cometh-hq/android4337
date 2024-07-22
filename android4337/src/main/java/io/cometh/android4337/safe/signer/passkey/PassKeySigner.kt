@@ -2,7 +2,6 @@ package io.cometh.android4337.safe.signer.passkey
 
 
 import android.content.Context
-import androidx.credentials.CredentialManager
 import io.cometh.android4337.safe.Safe
 import io.cometh.android4337.safe.Safe.getSignatureBytes
 import io.cometh.android4337.safe.SafeConfig
@@ -25,8 +24,7 @@ import java.security.SecureRandom
 class PassKeySigner(
     private val rpId: String,
     private val context: Context,
-    private val credentialManager: CredentialManager,
-    private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context, credentialManager),
+    private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
     private val safeConfig: SafeConfig = SafeConfig.createDefaultConfig(),
 ) : Signer {
 

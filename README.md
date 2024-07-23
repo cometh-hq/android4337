@@ -234,7 +234,7 @@ for more details.
 To sign user operations, you need a Signer. Android4337 provides two implementations:
 
 - `EcdsaSigner`: Signs user operations using the provided credentials. Used by default.
-- `PassKeySigner`: Signs user operations using the PassKey.
+- `PassKeySigner`: Signs user operations using a PassKey.
 
 #### PassKey Signer
 
@@ -248,7 +248,9 @@ val passKeySigner = PassKeySigner(
 
 // must be done before creating SafeAccount, will launch a passkey creation user flow
 // can throw a GetCredentialException (from CredentialsManager) if create_credentials fails
-passKeySigner.createPasskey(userName = "user_name") // or passKeySigner.importPasskey(x, y)
+coroutineScope.launch {
+    passKeySigner.createPasskey(userName = "user_name") // or passKeySigner.importPasskey(x, y)
+}
 
 // ...
 

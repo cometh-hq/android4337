@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.safe.SafeAccount
@@ -167,71 +168,15 @@ fun SignUpScreen() {
                     } catch (e: SmartAccountException) {
                         signUpResult = "❌ Error: ${e.message}"
                         Log.e("SignUpScreen", "Error: ${e.message}", e)
+                    } catch (e: GetCredentialException) {
+                        signUpResult = "❌ Error: ${e.message}"
+                        Log.e("SignUpScreen", "Error: ${e.message}", e)
                     }
                 }
             }
         }) {
             Text(text = "Send User Operation")
         }
-//        Button(onClick = {
-//            coroutineScope.launch {
-//                signUpResult = ""
-//                val request = CreatePublicKeyCredentialRequest(
-//                    requestJson = createJsonFor("alex@startapp.nc"),
-//                    preferImmediatelyAvailableCredentials = true,
-//                )
-//                val response = try {
-//                    credentialManager.createCredential(context, request) as CreatePublicKeyCredentialResponse
-//                } catch (e: Exception) {
-//                    Log.e("SignUpScreen", "Error: ${e.message}", e)
-//                    signUpResult = "Error: ${e.message}"
-//                    return@launch
-//                }
-//                signUpResult = "Sign up done ✅"
-//                Log.i("SignUpScreen", "response: ${response.registrationResponseJson}")
-//                val responseJson = ObjectMapper().readValue(response.registrationResponseJson, CreateCredentialResponse::class.java)
-//                Log.i("SignUpScreen", "publicKey=${responseJson.response.publicKey}")
-//
-//                // public key to x/y coordinates
-//                val publicKey = responseJson.response.publicKey
-//                val rawId = responseJson.rawId
-//                val (x, y) = publicKeyToXYCoordinates(publicKey.decodeBase64())
-//                Log.i("SignUpScreen", "x=$x, y=$y")
-//            }
-//        }) {
-//            Text(text = "Sign Up")
-//        }
-//        Button(onClick = {
-//            coroutineScope.launch {
-//                try {
-//                    val result = signWithPassKey(context, credentialManager, "0xaaaaaaaaaaaaaa".toByteArray())
-//                    Log.i("SignUpScreen", "response: $result")
-//                    // check emoji
-//                    signUpResult = "Sign with passkey done ✅"
-//                } catch (e: Exception) {
-//                    Log.e("SignUpScreen", "Error: ${e.message}", e)
-//                    signUpResult = "❌ Error: ${e.message}"
-//                }
-//            }
-//        }) {
-//            Text(text = "Sign With Passkey")
-//        }
-//        Spacer(modifier = Modifier.height(16.dp))
-//        Button(onClick = {
-//            coroutineScope.launch {
-//                try {
-//                    val result = signWithPassKey(context, credentialManager, "0xaaaaaaaaaaaaaa".toByteArray())
-//                    Log.i("SignUpScreen", "response: $result")
-//                    // check emoji
-//                    signUpResult = "Sign with passkey done ✅"
-//                } catch (e: Exception) {
-//                    Log.e("SignUpScreen", "Error: ${e.message}", e)
-//                    signUpResult = "❌ Error: ${e.message}"
-//                }
-//            }
-//        }) {
-//            Text(text = "Create with passkey")
-//        }
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = signUpResult, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(16.dp))

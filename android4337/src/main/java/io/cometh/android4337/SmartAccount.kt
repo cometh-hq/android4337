@@ -16,7 +16,7 @@ import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
 
-class SmartAccountException(message: String) : Exception(message)
+class SmartAccountException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 abstract class SmartAccount(
     protected val credentials: Credentials,

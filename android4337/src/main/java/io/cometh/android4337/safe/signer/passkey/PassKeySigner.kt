@@ -7,6 +7,7 @@ import io.cometh.android4337.safe.Safe.getSignatureBytes
 import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.SafeSignature
 import io.cometh.android4337.safe.signer.Signer
+import io.cometh.android4337.safe.signer.SignerException
 import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthenticationResponse
 import io.cometh.android4337.safe.signer.passkey.credentials.getPublicKeyCoordinates
 import io.cometh.android4337.utils.hexToBigInt
@@ -66,7 +67,7 @@ class PassKeySigner(
         val (r, s) = PassKeyUtils.extractRSFromSignature(signatureDecoded)
 
         // bytes, bytes, uint256[2]
-        val extractClientDataFields = authResponse.extractClientDataFields()
+        val extractClientDataFields = authResponse.extractClientDataFields() ?: throw SignerException("Failed to extract client data fields")
         val authenticatorDataDecoded = authResponse.response.getAuthenticatorDataDecoded()
         val passkeySignature = DefaultFunctionEncoder().encodeParameters(
             listOf(
@@ -120,13 +121,9 @@ class PassKeySigner(
     }
 }
 
-fun GetCredentialAuthenticationResponse.extractClientDataFields(): ByteArray {
+fun GetCredentialAuthenticationResponse.extractClientDataFields(): ByteArray? {
     val dataFields = String(response.getClientDataJSONDecoded())
-    val matchResult = Regex("""^\{"type":"webauthn.get","challenge":"[A-Za-z0-9\-_]{43}",(.*)\}$""").find(dataFields)
-    if (matchResult == null) {
-        //TODO handle error
-        throw NotImplementedError("//TODO handle error")
-    }
+    val matchResult = Regex("""^\{"type":"webauthn.get","challenge":"[A-Za-z0-9\-_]{43}",(.*)\}$""").find(dataFields) ?: return null
     val fields = matchResult.groupValues[1]
     return fields.toByteArray()
 }

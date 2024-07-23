@@ -12,6 +12,7 @@ import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.signer.Signer
+import io.cometh.android4337.safe.signer.SignerException
 import io.cometh.android4337.safe.signer.ecdsa.EcdsaSigner
 import io.cometh.android4337.safe.signer.passkey.PassKey
 import io.cometh.android4337.safe.signer.passkey.PassKeySigner
@@ -188,7 +189,11 @@ class SafeAccount private constructor(
         )
 
         val hashData = Sign.hashTypedData(json)
-        val signatureData = signer.sign(hashData)
+        val signatureData = try {
+            signer.sign(hashData)
+        } catch (e: SignerException) {
+            throw SmartAccountException("Failed to sign operation", e)
+        }
         val signature = AbiEncoder.encodePackedParameters(
             listOf(
                 Uint48(validAfter),

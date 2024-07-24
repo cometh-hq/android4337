@@ -1,17 +1,14 @@
 package io.cometh.android4337
 
-import io.cometh.android4337.utils.hexStringToAddress
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
+import io.cometh.android4337.utils.hexToAddress
+import io.cometh.android4337.utils.hexToBigInt
+import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.removeOx
 import io.cometh.android4337.utils.requireHex
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.toHexNoPrefix
 import io.cometh.android4337.web3j.AbiEncoder
-import org.web3j.abi.DefaultFunctionEncoder
 import org.web3j.abi.datatypes.DynamicBytes
 import org.web3j.abi.datatypes.generated.Uint128
-import org.web3j.utils.Numeric
 
 data class UserOperation(
     val sender: String,
@@ -50,8 +47,7 @@ data class UserOperation(
 
 fun UserOperation.getInitCode(): String {
     if (factory == null || factoryData == null) return "0x"
-    val initCode = "0x${factory.lowercase().removeOx()}${factoryData.removeOx()}"
-    return initCode
+    return "0x${factory.lowercase().removeOx()}${factoryData.removeOx()}"
 }
 
 fun UserOperation.getPaymasterAndData(): String {
@@ -59,10 +55,10 @@ fun UserOperation.getPaymasterAndData(): String {
     //["address", "uint128", "uint128", "bytes"]
     val encoded = AbiEncoder.encodePackedParameters(
         listOf(
-            paymaster!!.hexStringToAddress(),
-            Uint128(paymasterVerificationGasLimit!!.hexStringToBigInt()),
-            Uint128(paymasterPostOpGasLimit!!.hexStringToBigInt()),
-            DynamicBytes(paymasterData!!.hexStringToByteArray())
+            paymaster!!.hexToAddress(),
+            Uint128(paymasterVerificationGasLimit!!.hexToBigInt()),
+            Uint128(paymasterPostOpGasLimit!!.hexToBigInt()),
+            DynamicBytes(paymasterData!!.hexToByteArray())
         )
     )
     return encoded

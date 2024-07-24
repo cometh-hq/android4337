@@ -15,8 +15,13 @@ import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
-
-class SmartAccountException(message: String) : Exception(message)
+sealed class SmartAccountException(message: String, cause: Throwable? = null) : Exception(message, cause) {
+    class Error(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+    class InvalidSignatureError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+    class UserOpGasEstimationError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+    class PaymasterError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+    class SignerError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+}
 
 abstract class SmartAccount(
     protected val credentials: Credentials,
@@ -44,7 +49,10 @@ abstract class SmartAccount(
         }
         val result = bundlerClient.ethSendUserOperation(userOperation, entryPointAddress).send()
         if (result.hasError()) {
-            throw SmartAccountException("Bundler cannot send user operation, code: ${result.error!!.code} ${result.error.message}")
+            if (result.error!!.message.contains("AA24")) {
+                throw SmartAccountException.InvalidSignatureError("Invalid signature: ${result.error!!.code} ${result.error.message}")
+            }
+            throw SmartAccountException.Error("Bundler cannot send user operation, code: ${result.error!!.code} ${result.error.message}")
         }
         return result.result
     }
@@ -73,9 +81,11 @@ abstract class SmartAccount(
             }
         }
 
+        userOperation.signature = getDummySignature()
         val estimateResp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
+        userOperation.signature = null
         if (estimateResp.hasError()) {
-            throw SmartAccountException("Bundler cannot estimate user operation gas, code: ${estimateResp.error!!.code} ${estimateResp.error.message}")
+            throw SmartAccountException.UserOpGasEstimationError("Bundler cannot estimate user operation gas, code: ${estimateResp.error!!.code} ${estimateResp.error.message}")
         }
         userOperation.apply {
             preVerificationGas = estimateResp.result.preVerificationGas
@@ -84,9 +94,11 @@ abstract class SmartAccount(
         }
 
         if (paymasterClient != null) {
+            userOperation.signature = getDummySignature()
             val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
+            userOperation.signature = null
             if (resp.hasError()) {
-                throw SmartAccountException("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")
+                throw SmartAccountException.PaymasterError("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")
             }
             userOperation.apply {
                 paymaster = resp.result.paymaster
@@ -107,7 +119,7 @@ abstract class SmartAccount(
     fun getNonce(): BigInteger {
         val entryPointContract = EntryPointContract(transactionManager, entryPointAddress)
         val nonce = entryPointContract.getNonce(accountAddress)
-            ?: throw SmartAccountException("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
+            ?: throw SmartAccountException.Error("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
         return nonce
     }
 
@@ -116,7 +128,7 @@ abstract class SmartAccount(
     fun isDeployed(): Boolean {
         val result = web3.ethGetCode(accountAddress, DefaultBlockParameterName.LATEST).send()
         if (result.hasError()) {
-            throw SmartAccountException("Cannot get code for account address ($accountAddress), code: ${result.error!!.code} ${result.error.message}")
+            throw SmartAccountException.Error("Cannot get code for account address ($accountAddress), code: ${result.error!!.code} ${result.error.message}")
         }
         return result.code != "0x"
     }
@@ -125,4 +137,5 @@ abstract class SmartAccount(
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray
     abstract fun getFactoryAddress(): Address
     abstract fun getFactoryData(): ByteArray
+    abstract fun getDummySignature(): String
 }

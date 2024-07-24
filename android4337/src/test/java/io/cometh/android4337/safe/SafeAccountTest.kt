@@ -7,6 +7,8 @@ import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.signer.passkey.PassKey
+import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.toHex
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -14,7 +16,6 @@ import io.mockk.impl.annotations.MockK
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.web3j.protocol.Web3j
 import org.web3j.tx.TransactionManager
 
 class SafeAccountTest {
@@ -121,6 +122,22 @@ class SafeAccountTest {
     }
 
     @Test
+    fun predictAddressWithPassKey() {
+        every {
+            transactionManager.sendCall(any(), any(), any())
+        } returns TestsData.proxyCode
+        val address = SafeAccount.predictAddress(
+            TestsData.account1Credentials.address,
+            transactionManager,
+            passKey = PassKey(
+                x="0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
+                y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
+            )
+        )
+        assertEquals("0xfF724471DcB34e42C715163B60A0881fAF7a9C96", address)
+    }
+
+    @Test
     fun getOwners() {
         every {
             transactionManager.sendCall(
@@ -148,6 +165,21 @@ class SafeAccountTest {
         val expected =
             "0x000000000000000000000000298adde4bafae7cf44a9bf2a1881a836716592c85ac5f6445e673647d6cc907e3af6d065c591f07173e83246ef649147b0034bf119da693c4025be55206e9db91c"
         assertEquals(expected, signature.toHex())
+    }
+
+    @Test
+    fun signOperationWithPasskey() {
+        val userOperation = UserOperation(
+            sender = "0xcfe1e7242dF565f031e1D3F645169Dda9D1230d2",
+            nonce = "0x00",
+            callData = "0x7bb374280000000000000000000000000338dcd5512ae8f3c481c33eb4b6eedf632d1d2f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000406661abd00000000000000000000000000000000000000000000000000000000",
+            preVerificationGas = "0xea60",
+            callGasLimit = "0x1e8480",
+            verificationGasLimit = "0x07a120",
+            maxFeePerGas = "0x02ee7c55e2",
+            maxPriorityFeePerGas = "0x1f2ecf7f",
+        )
+        val signature = safeAccount2.signOperation(userOperation, EntryPointContract.ENTRY_POINT_ADDRESS_V7)
     }
 
     @Test(expected = IllegalArgumentException::class)

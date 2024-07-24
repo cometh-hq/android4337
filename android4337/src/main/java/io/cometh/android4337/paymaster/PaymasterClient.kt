@@ -1,7 +1,6 @@
 package io.cometh.android4337.paymaster
 
 import io.cometh.android4337.UserOperation
-import io.cometh.android4337.bundler.DUMMY_SIGNATURE
 import io.cometh.android4337.toMap
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.http.HttpService
@@ -17,7 +16,6 @@ class PaymasterClient(
         entryPoint: String
     ): Request<Any, SponsorUserOperationResponse> {
         val data = userOperation.toMap().toMutableMap()
-        data["signature"] = DUMMY_SIGNATURE
         return Request(
             "pm_sponsorUserOperation",
             listOf(data, entryPoint),

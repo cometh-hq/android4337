@@ -10,13 +10,10 @@ import io.cometh.android4337.utils.requireHexAddress
 import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.Request
 
-val DUMMY_SIGNATURE =
-    "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c"
 
 class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClient {
 
     override fun ethSendUserOperation(userOperation: UserOperation, entryPointAddress: String): Request<Any, EthSendUserOperationResponse> {
-        val data = userOperation.toMap()
         return Request(
             "eth_sendUserOperation",
             listOf(userOperation.toMap(), entryPointAddress),
@@ -31,7 +28,6 @@ class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClien
     ): Request<Any, EthEstimateUserOperationGasResponse> {
         entryPointAddress.requireHexAddress()
         val data = userOperation.toMap().toMutableMap()
-        data["signature"] = DUMMY_SIGNATURE
         return Request(
             "eth_estimateUserOperationGas",
             listOf(data, entryPointAddress),

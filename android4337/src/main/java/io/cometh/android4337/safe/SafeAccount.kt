@@ -11,16 +11,17 @@ import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.getInitCode
 import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.paymaster.PaymasterClient
-import io.cometh.android4337.safe.SafeUtils.getEnableModulesFunctionData
-import io.cometh.android4337.safe.SafeUtils.getSetupFunctionData
+import io.cometh.android4337.safe.signer.Signer
+import io.cometh.android4337.safe.signer.SignerException
+import io.cometh.android4337.safe.signer.ecdsa.EcdsaSigner
+import io.cometh.android4337.safe.signer.passkey.PassKey
+import io.cometh.android4337.safe.signer.passkey.PassKeySigner
 import io.cometh.android4337.utils.encode
-import io.cometh.android4337.utils.hexStringToBigInt
-import io.cometh.android4337.utils.hexStringToByteArray
+import io.cometh.android4337.utils.hexToAddress
+import io.cometh.android4337.utils.hexToBigInt
+import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.requireHexAddress
-import io.cometh.android4337.utils.hexStringToAddress
-import io.cometh.android4337.utils.toByteArray
 import io.cometh.android4337.utils.toHex
-import io.cometh.android4337.utils.toHexNoPrefix
 import io.cometh.android4337.web3j.AbiEncoder
 import io.cometh.android4337.web3j.Create2
 import io.cometh.android4337.web3j.Sign
@@ -43,34 +44,28 @@ import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.RawTransactionManager
 import org.web3j.tx.TransactionManager
-import org.web3j.utils.Numeric
 import java.io.IOException
 import java.math.BigInteger
 
 class SafeAccount private constructor(
+    val safeAddress: String,
     credentials: Credentials,
     bundlerClient: BundlerClient,
     gasPriceProvider: UserOperationGasPriceProvider,
     entryPointAddress: String,
     web3Service: Service,
-    val safeAddress: String,
     private val chainId: Int,
     private val config: SafeConfig,
+    private val signer: Signer = EcdsaSigner(credentials),
     paymasterClient: PaymasterClient? = null,
     transactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
 ) : SmartAccount(
-    credentials,
-    bundlerClient,
-    gasPriceProvider,
-    entryPointAddress,
-    web3Service,
-    paymasterClient,
-    safeAddress,
-    transactionManager
+    credentials, bundlerClient, gasPriceProvider, entryPointAddress, web3Service, paymasterClient, safeAddress, transactionManager
 ) {
 
     init {
         safeAddress.requireHexAddress()
+        signer.checkRequirements()
     }
 
     companion object {
@@ -80,21 +75,23 @@ class SafeAccount private constructor(
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
-            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+            signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
             web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             return SafeAccount(
+                address,
                 credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
                 web3Service,
-                address,
                 chainId,
                 config,
+                signer,
                 paymasterClient,
                 web3jTransactionManager
             )
@@ -107,26 +104,31 @@ class SafeAccount private constructor(
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
-            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+            signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
             web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
+            var passKey: PassKey? = null
+            if (signer is PassKeySigner) passKey = signer.getPasskey()
             val predictedAddress = predictAddress(
                 owner = credentials.address,
                 web3jTransactionManager = web3jTransactionManager,
-                config = config
+                config = config,
+                passKey = passKey
             )
             return SafeAccount(
+                predictedAddress,
                 credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
                 web3Service,
-                predictedAddress,
                 chainId,
                 config,
+                signer,
                 paymasterClient,
                 web3jTransactionManager
             )
@@ -137,31 +139,24 @@ class SafeAccount private constructor(
         fun predictAddress(
             owner: String,
             web3jTransactionManager: TransactionManager,
-            config: SafeConfig = SafeConfig.createDefaultConfig()
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
+            passKey: PassKey? = null
         ): String {
             owner.requireHexAddress()
             val nonce = BigInteger.ZERO
-            val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
-            val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException("Failed to get proxy creation code")
-            val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
-            val setupData = getSetupFunctionData(
-                _owners = listOf(owner.hexStringToAddress()),
-                _threshold = BigInteger.ONE,
-                to = config.safeModuleSetupAddress.hexStringToAddress(),
-                data = enableModulesData,
-                fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
-                paymentToken = Address.DEFAULT,
-                payment = BigInteger.ZERO,
-                paymentReceiver = Address.DEFAULT
-            )
-            val keccak256Setup = Hash.sha3(setupData)
+            val safeInitializer = if (passKey == null) {
+                Safe.getSafeInitializer(owner.hexToAddress(), config)
+            } else {
+                Safe.getSafeInitializerWithPasskey(config, passKey)
+            }
+            val keccak256Setup = Hash.sha3(safeInitializer)
             val saltHash = AbiEncoder.encodePackedParameters(listOf(Bytes32(keccak256Setup), Uint256(nonce)))
             val salt = Hash.sha3(saltHash)
+
+            val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
+            val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException.Error("Failed to get proxy creation code")
             val deploymentCode = AbiEncoder.encodePackedParameters(
-                listOf(
-                    DynamicBytes(proxyCreationCode),
-                    Uint256(config.safeSingletonL2Address.hexStringToBigInt())
-                )
+                listOf(DynamicBytes(proxyCreationCode), Uint256(config.safeSingletonL2Address.hexToBigInt()))
             )
             val keccak256DeploymentCode = Hash.sha3(deploymentCode)
             val proxyAddress = Create2.getCreate2Address(config.safeProxyFactoryAddress, salt, keccak256DeploymentCode)
@@ -171,14 +166,13 @@ class SafeAccount private constructor(
     }
 
     override fun signOperation(
-        userOperation: UserOperation,
-        entryPointAddress: String
+        userOperation: UserOperation, entryPointAddress: String
     ): ByteArray {
         val validAfter = BigInteger.ZERO
         val validUntil = BigInteger.ZERO
         val json = buildSafeJsonEip712V7(
             chainId = chainId,
-            verifyingContract = config.erc4337ModuleAddress,
+            verifyingContract = config.safe4337ModuleAddress,
             sender = userOperation.sender,
             nonce = userOperation.nonce,
             initCode = userOperation.getInitCode(),
@@ -193,15 +187,25 @@ class SafeAccount private constructor(
             validUntil = validUntil.toHex(),
             entryPointAddress = entryPointAddress
         )
-        val signatureData = Sign.signTypedData(json, credentials.ecKeyPair)
+
+        val hashData = Sign.hashTypedData(json)
+        val signatureData = try {
+            signer.sign(hashData)
+        } catch (e: SignerException) {
+            throw SmartAccountException.SignerError("Failed to sign operation", e.cause)
+        }
         val signature = AbiEncoder.encodePackedParameters(
             listOf(
                 Uint48(validAfter),
                 Uint48(validUntil),
-                DynamicBytes(signatureData.toByteArray())
+                DynamicBytes(signatureData)
             )
         )
-        return signature.hexStringToByteArray()
+        return signature.hexToByteArray()
+    }
+
+    override fun getDummySignature(): String {
+        return signer.getDummySignature()
     }
 
     @WorkerThread
@@ -211,13 +215,10 @@ class SafeAccount private constructor(
         val function = Function("getOwners", inputParams, outputParams)
         val encodedFunction = FunctionEncoder.encode(function)
         val value = transactionManager.sendCall(
-            accountAddress,
-            encodedFunction,
-            DefaultBlockParameterName.LATEST
+            accountAddress, encodedFunction, DefaultBlockParameterName.LATEST
         )
         val result: List<DynamicArray<Address>> = FunctionReturnDecoder.decode(
-            value,
-            function.outputParameters
+            value, function.outputParameters
         ) as List<DynamicArray<Address>>
         return result.firstOrNull()?.value
     }
@@ -234,26 +235,22 @@ class SafeAccount private constructor(
     }
 
     override fun getFactoryAddress(): Address {
-        return config.safeProxyFactoryAddress.hexStringToAddress()
+        return config.safeProxyFactoryAddress.hexToAddress()
     }
 
     override fun getFactoryData(): ByteArray {
-        val nonce = 0
-        val enableModulesData = getEnableModulesFunctionData(listOf(config.erc4337ModuleAddress.hexStringToAddress()))
-        val setupData = getSetupFunctionData(
-            _owners = listOf(credentials.address.hexStringToAddress()),
-            _threshold = BigInteger.ONE,
-            to = config.safeModuleSetupAddress.hexStringToAddress(),
-            data = enableModulesData,
-            fallbackHandler = config.erc4337ModuleAddress.hexStringToAddress(),
-            paymentToken = Address.DEFAULT,
-            payment = BigInteger.ZERO,
-            paymentReceiver = Address.DEFAULT
-        )
-        val createProxyWithNonceData = SafeUtils.getCreateProxyWithNonceFunctionData(
-            _singleton = config.safeSingletonL2Address.hexStringToAddress(),
-            initializer = setupData,
-            saltNonce = nonce.toBigInteger()
+        val safeInitializer = if (signer is PassKeySigner) {
+            Safe.getSafeInitializerWithPasskey(
+                config = config,
+                passKey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
+            )
+        } else {
+            Safe.getSafeInitializer(owner = credentials.address.hexToAddress(), config = config)
+        }
+        val createProxyWithNonceData = Safe.getCreateProxyWithNonceFunctionData(
+            _singleton = config.getSafeSingletonL2Address(),
+            initializer = safeInitializer,
+            saltNonce = 0.toBigInteger()
         )
         return createProxyWithNonceData
     }

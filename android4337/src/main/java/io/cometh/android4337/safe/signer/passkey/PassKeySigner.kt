@@ -27,7 +27,7 @@ class PassKeySigner(
     private val rpId: String,
     private val context: Context,
     private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
-    private val safeConfig: SafeConfig = SafeConfig.createDefaultConfig(),
+    private val safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
 ) : Signer {
 
     val DUMMY_AUTHENTICATOR_DATA = "0xfefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe04fefefefe"

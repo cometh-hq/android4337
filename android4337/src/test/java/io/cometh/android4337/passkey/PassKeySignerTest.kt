@@ -46,7 +46,7 @@ class PassKeySignerTest {
             rpId = "cometh",
             context = mockk<Context>(),
             credentialsApiHelper = credentialsApiHelper,
-            safeConfig = SafeConfig.createDefaultConfig()
+            safeConfig = SafeConfig.getDefaultConfig()
         )
         val clientDataJSON =
             "0x7b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a22776d3951626c6f47494f6d2d46746b6e565363797a3741765434507335476a52376b65446667674c366649222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a35313733222c2263726f73734f726967696e223a66616c73657d"

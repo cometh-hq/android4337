@@ -75,7 +75,7 @@ class SafeAccount private constructor(
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
-            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
             signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
@@ -104,7 +104,7 @@ class SafeAccount private constructor(
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
-            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
             signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
@@ -139,7 +139,7 @@ class SafeAccount private constructor(
         fun predictAddress(
             owner: String,
             web3jTransactionManager: TransactionManager,
-            config: SafeConfig = SafeConfig.createDefaultConfig(),
+            config: SafeConfig = SafeConfig.getDefaultConfig(),
             passKey: PassKey? = null
         ): String {
             owner.requireHexAddress()

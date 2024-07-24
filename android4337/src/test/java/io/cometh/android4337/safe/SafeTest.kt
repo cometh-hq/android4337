@@ -8,7 +8,7 @@ import org.junit.Test
 
 class SafeTest {
 
-    val config = SafeConfig.createDefaultConfig()
+    val config = SafeConfig.getDefaultConfig()
     val x = "0x8e118e694bd0e15fcbcdb2583ba9ee9fc14df95604a441a778e64bf97897360e".hexToBigInt()
     val y = "0x1403fe0045ea30ff2cea23eeddd7eb6ada07016736ddd7c1ffa9d4769364cf9a".hexToBigInt()
     val passKey = PassKey(x, y)

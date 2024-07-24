@@ -14,7 +14,7 @@ data class SafeConfig(
     val safeP256VerifierAddress: String,
 ) {
     companion object {
-        fun createDefaultConfig(): SafeConfig {
+        fun getDefaultConfig(): SafeConfig {
             return SafeConfig(
                 safeModuleSetupAddress = "0x2dd68b007B46fBe91B9A7c3EDa5A7a1063cB5b47",
                 safe4337ModuleAddress = "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226",

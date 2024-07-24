@@ -17,6 +17,9 @@ class CredentialsApiHelper(
     private val credentialManager: CredentialManager = CredentialManager.create(context)
 ) {
 
+    /**
+     * @throws GetCredentialException
+     */
     suspend fun getCredential(rpId: String, challenge: ByteArray): GetCredentialAuthenticationResponse {
         val json = """
         {

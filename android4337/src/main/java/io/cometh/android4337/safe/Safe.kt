@@ -65,7 +65,10 @@ object Safe {
 
     // multiSend
     fun getMultiSendFunctionData(
-        safeModuleSetupAddress: Address, safeWebAuthnSharedSignerAddress: Address, enableModuleData: ByteArray, sharedSignerConfigureData: ByteArray
+        safeModuleSetupAddress: Address,
+        safeWebAuthnSharedSignerAddress: Address,
+        enableModuleData: ByteArray,
+        sharedSignerConfigureData: ByteArray
     ): ByteArray {
         val encodedMultiSendTxs = encodeMultiSendTransactions(
             listOf(

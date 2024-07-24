@@ -154,7 +154,7 @@ class SafeAccount private constructor(
             val salt = Hash.sha3(saltHash)
 
             val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
-            val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException("Failed to get proxy creation code")
+            val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException.Error("Failed to get proxy creation code")
             val deploymentCode = AbiEncoder.encodePackedParameters(
                 listOf(DynamicBytes(proxyCreationCode), Uint256(config.safeSingletonL2Address.hexToBigInt()))
             )
@@ -192,7 +192,7 @@ class SafeAccount private constructor(
         val signatureData = try {
             signer.sign(hashData)
         } catch (e: SignerException) {
-            throw SmartAccountException("Failed to sign operation", e)
+            throw SmartAccountException.SignerError("Failed to sign operation", e.cause)
         }
         val signature = AbiEncoder.encodePackedParameters(
             listOf(
@@ -242,7 +242,7 @@ class SafeAccount private constructor(
         val safeInitializer = if (signer is PassKeySigner) {
             Safe.getSafeInitializerWithPasskey(
                 config = config,
-                passKey = signer.getPasskey() ?: throw SmartAccountException("cannot happened")
+                passKey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
             )
         } else {
             Safe.getSafeInitializer(owner = credentials.address.hexToAddress(), config = config)

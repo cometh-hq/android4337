@@ -260,7 +260,6 @@ val safeAccount = SafeAccount.createNewAccount(
 )
 
 // when sending an user operation, it will prompt the user to sign the operation using the passkey
-// can throw a GetCredentialException (from CredentialsManager) if get_credentials fails
 safeAccount.sendUserOperation("TO_ADDRESS", value = BigInteger.ZERO, data = "0x".toByteArray())
 ```
 

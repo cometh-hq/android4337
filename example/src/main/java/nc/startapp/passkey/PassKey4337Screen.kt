@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.credentials.CredentialManager
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
@@ -44,7 +43,6 @@ import org.web3j.utils.Convert
 @Composable
 fun SignUpScreen() {
     val context = LocalContext.current
-    val credentialManager: CredentialManager by lazy { CredentialManager.create(context) }
     val coroutineScope = rememberCoroutineScope()
     var signUpResult by remember { mutableStateOf("") }
     var safeAddress by remember { mutableStateOf("") }
@@ -166,10 +164,15 @@ fun SignUpScreen() {
                         """.trimIndent()
                         Log.i("SignUpScreen", signUpResult)
                     } catch (e: SmartAccountException) {
-                        signUpResult = "❌ Error: ${e.message}"
-                        Log.e("SignUpScreen", "Error: ${e.message}", e)
-                    } catch (e: GetCredentialException) {
-                        signUpResult = "❌ Error: ${e.message}"
+                        signUpResult = when {
+                            e is SmartAccountException.InvalidSignatureError -> {
+                                "❌ Invalid Signature Error: ${e.message}"
+                            }
+                            e is SmartAccountException.SignerError && e.cause is GetCredentialException -> {
+                                "❌ Get Credential Error: ${e.message}"
+                            }
+                            else -> "❌ Error: ${e.message}"
+                        }
                         Log.e("SignUpScreen", "Error: ${e.message}", e)
                     }
                 }

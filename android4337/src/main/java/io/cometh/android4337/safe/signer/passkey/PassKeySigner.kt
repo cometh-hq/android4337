@@ -2,6 +2,7 @@ package io.cometh.android4337.safe.signer.passkey
 
 
 import android.content.Context
+import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.safe.Safe
 import io.cometh.android4337.safe.Safe.getSignatureBytes
 import io.cometh.android4337.safe.SafeConfig
@@ -62,7 +63,11 @@ class PassKeySigner(
 
 
     override fun sign(data: ByteArray): ByteArray {
-        val authResponse = runBlocking { credentialsApiHelper.getCredential(rpId, data) }
+        val authResponse = try {
+            runBlocking { credentialsApiHelper.getCredential(rpId, data) }
+        } catch (e: GetCredentialException) {
+            throw SignerException("Failed to get credential", e)
+        }
         val signatureDecoded = authResponse.response.getSignatureDecoded()
         val (r, s) = PassKeyUtils.extractRSFromSignature(signatureDecoded)
 

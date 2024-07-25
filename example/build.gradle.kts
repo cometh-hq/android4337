@@ -4,13 +4,11 @@ plugins {
 }
 
 android {
-//    namespace = "io.cometh.android4337"
-    namespace = "nc.startapp.passkey"
+    namespace = "io.cometh.sample4337"
     compileSdk = 34
 
     defaultConfig {
-//        applicationId = "io.cometh.android4337"
-        applicationId = "nc.startapp.passkey"
+        applicationId = "io.cometh.sample4337"
         minSdk = 23
         targetSdk = 34
         versionCode = 1
@@ -19,6 +17,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            keyAlias = "android4337"
+            keyPassword = "android4337"
+            storeFile = file("./android4337.keystore")
+            storePassword = "android4337"
         }
     }
 

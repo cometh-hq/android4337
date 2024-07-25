@@ -1,4 +1,4 @@
-package nc.startapp.passkey.theme
+package io.cometh.sample4337.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

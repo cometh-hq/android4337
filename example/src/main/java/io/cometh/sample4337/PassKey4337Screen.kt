@@ -1,4 +1,4 @@
-package nc.startapp.passkey
+package io.cometh.sample4337
 
 import android.content.Context
 import android.util.Log
@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
@@ -57,7 +58,7 @@ fun SignUpScreen() {
     val prefs = context.getSharedPreferences("passkey", Context.MODE_PRIVATE)
 
     val passKeySigner = PassKeySigner(
-        rpId = "passkey.startapp.nc",
+        rpId = "sample4337.cometh.io",
         context = context,
     )
     Log.i("SignUpScreen", "publicKey=${credentials.address}")
@@ -118,32 +119,38 @@ fun SignUpScreen() {
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
             coroutineScope.launch {
-                passKeySigner.createPasskey("alex")
-                passKeySigner.getPasskey()?.let { passKey ->
-                    safeAccount = withContext(Dispatchers.IO) {
-                        return@withContext SafeAccount.createNewAccount(
-                            credentials = credentials,
-                            bundlerClient = bundlerClient,
-                            chainId = chainId,
-                            web3Service = rpcService,
-                            signer = passKeySigner,
+                try {
+                    passKeySigner.createPasskey("alex")
+                    passKeySigner.getPasskey()?.let { passKey ->
+                        safeAccount = withContext(Dispatchers.IO) {
+                            return@withContext SafeAccount.createNewAccount(
+                                credentials = credentials,
+                                bundlerClient = bundlerClient,
+                                chainId = chainId,
+                                web3Service = rpcService,
+                                signer = passKeySigner,
 //                            paymasterClient = paymasterClient
-                        )
-                    }
-                    signUpResult = """
+                            )
+                        }
+                        signUpResult = """
                         Passkey Created ✅
                         x=${passKey.x.toHex()}
                         y=${passKey.y.toHex()}
                     """.trimIndent()
-                    safeAddress = safeAccount!!.accountAddress
+                        safeAddress = safeAccount!!.accountAddress
 
-                    prefs.edit {
-                        putString("x", passKey.x.toHex())
-                        putString("y", passKey.y.toHex())
+                        prefs.edit {
+                            putString("x", passKey.x.toHex())
+                            putString("y", passKey.y.toHex())
+                        }
+
+                        Log.i("SignUpScreen", signUpResult)
                     }
-
-                    Log.i("SignUpScreen", signUpResult)
+                } catch (e: CreateCredentialException) {
+                    signUpResult = "❌ Create Credential Error: ${e.message}"
+                    Log.e("SignUpScreen", "Error: ${e.message}", e)
                 }
+
             }
         }) {
             Text(text = "Create passkey")
@@ -168,9 +175,11 @@ fun SignUpScreen() {
                             e is SmartAccountException.InvalidSignatureError -> {
                                 "❌ Invalid Signature Error: ${e.message}"
                             }
+
                             e is SmartAccountException.SignerError && e.cause is GetCredentialException -> {
                                 "❌ Get Credential Error: ${e.message}"
                             }
+
                             else -> "❌ Error: ${e.message}"
                         }
                         Log.e("SignUpScreen", "Error: ${e.message}", e)

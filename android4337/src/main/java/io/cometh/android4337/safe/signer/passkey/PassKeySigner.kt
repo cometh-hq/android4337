@@ -47,6 +47,9 @@ class PassKeySigner(
         passKey = PassKey(x, y)
     }
 
+    /**
+     * @throws CreateCredentialException
+     */
     suspend fun createPasskey(userName: String, rpName: String = "", userId: String = "") {
         require(passKey == null) { "passkey already loaded" }
         require(userName.isNotEmpty()) { "userName must be set" }

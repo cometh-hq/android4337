@@ -1,4 +1,4 @@
-package nc.startapp.passkey.theme
+package io.cometh.sample4337.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

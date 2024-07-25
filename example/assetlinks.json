@@ -1,0 +1,27 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.cometh.sample4337",
+      "sha256_cert_fingerprints":
+      ["8A:A1:6B:8F:D3:FA:4E:FD:B7:C9:4F:BB:F1:15:AD:53:19:BB:EE:7C:6B:A1:55:74:82:6F:E2:94:94:91:AC:04"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "web",
+      "site": "https://sample4337.cometh.io"
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.cometh.sample4337",
+      "sha256_cert_fingerprints":
+      ["8A:A1:6B:8F:D3:FA:4E:FD:B7:C9:4F:BB:F1:15:AD:53:19:BB:EE:7C:6B:A1:55:74:82:6F:E2:94:94:91:AC:04"]
+    }
+  }
+]

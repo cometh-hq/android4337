@@ -2,6 +2,8 @@ package io.cometh.android4337.safe.signer.passkey
 
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.safe.Safe
 import io.cometh.android4337.safe.Safe.getSignatureBytes
@@ -13,6 +15,7 @@ import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthen
 import io.cometh.android4337.safe.signer.passkey.credentials.getPublicKeyCoordinates
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
+import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.web3j.AbiEncoder
 import kotlinx.coroutines.runBlocking
 import org.web3j.abi.DefaultFunctionEncoder
@@ -23,8 +26,9 @@ import org.web3j.abi.datatypes.generated.Uint48
 import java.math.BigInteger
 import java.security.SecureRandom
 
-class PassKeySigner(
+class PasskeySigner(
     private val rpId: String,
+    private val userName: String,
     private val context: Context,
     private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
     private val safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
@@ -36,32 +40,50 @@ class PassKeySigner(
         "padding":"This pads the clientDataJSON so that we can leave room for additional implementation specific fields for a more accurate 'preVerificationGas' estimate."
     """.trimIndent()
 
-    private var passKey: PassKey? = null
+    private val prefs: SharedPreferences = context.getSharedPreferences("passkey-$rpId-$userName", Context.MODE_PRIVATE)
 
-    fun importPasskey(publicKey: ByteArray) {
-        val (x, y) = PassKeyUtils.publicKeyToXYCoordinates(publicKey)
-        passKey = PassKey(x, y)
+    init {
+        require(rpId.isNotEmpty()) { "rpId must be set" }
+        require(userName.isNotEmpty()) { "userName must be set" }
+        if (hasSavedPasskey()) loadPasskey()
     }
 
-    fun importPassKey(x: BigInteger, y: BigInteger) {
-        passKey = PassKey(x, y)
+    private var passkey: Passkey? = null
+
+    private fun loadPasskey() {
+        val x = prefs.getString("x", null)!!.hexToBigInt()
+        val y = prefs.getString("y", null)!!.hexToBigInt()
+        passkey = Passkey(x, y)
+    }
+
+    private fun hasSavedPasskey(): Boolean {
+        return prefs.contains("x") && prefs.contains("y")
     }
 
     /**
      * @throws CreateCredentialException
      */
-    suspend fun createPasskey(userName: String, rpName: String = "", userId: String = "") {
-        require(passKey == null) { "passkey already loaded" }
+    suspend fun createPasskey() {
+        require(!hasSavedPasskey()) { "passkey already created for rpId=${rpId} and userName=${userName}" }
+        require(passkey == null) { "passkey already loaded" }
         require(userName.isNotEmpty()) { "userName must be set" }
         val createResponse = credentialsApiHelper.createCredential(
             rpId = rpId,
-            rpName = rpName,
-            userId = userId,
+            rpName = "",
+            userId = userName,
             userName = userName,
             challenge = SecureRandom().generateSeed(32)
         )
-        val (x, y) = createResponse!!.response.getPublicKeyCoordinates()
-        passKey = PassKey(x, y)
+        val (x, y) = createResponse.response.getPublicKeyCoordinates()
+        passkey = Passkey(x, y)
+        savePasskeyInPrefs()
+    }
+
+    private fun savePasskeyInPrefs() {
+        prefs.edit {
+            putString("x", passkey!!.x.toHex())
+            putString("y", passkey!!.y.toHex())
+        }
     }
 
 
@@ -72,7 +94,7 @@ class PassKeySigner(
             throw SignerException("Failed to get credential", e)
         }
         val signatureDecoded = authResponse.response.getSignatureDecoded()
-        val (r, s) = PassKeyUtils.extractRSFromSignature(signatureDecoded)
+        val (r, s) = PasskeyUtils.extractRSFromSignature(signatureDecoded)
 
         // bytes, bytes, uint256[2]
         val extractClientDataFields = authResponse.extractClientDataFields() ?: throw SignerException("Failed to extract client data fields")
@@ -96,7 +118,7 @@ class PassKeySigner(
     }
 
     override fun checkRequirements() {
-        requireNotNull(passKey) { "PassKeySigner must have a pass key created or imported" }
+        requireNotNull(passkey) { "PasskeySigner must have a pass key created or imported" }
     }
 
     override fun getDummySignature(): String {
@@ -124,8 +146,8 @@ class PassKeySigner(
         )
     }
 
-    fun getPasskey(): PassKey? {
-        return passKey
+    fun getPasskey(): Passkey? {
+        return passkey
     }
 }
 

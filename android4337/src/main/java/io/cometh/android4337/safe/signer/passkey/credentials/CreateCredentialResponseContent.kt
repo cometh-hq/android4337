@@ -2,7 +2,7 @@ package io.cometh.android4337.safe.signer.passkey.credentials
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import io.cometh.android4337.safe.signer.passkey.PassKeyUtils
+import io.cometh.android4337.safe.signer.passkey.PasskeyUtils
 import io.cometh.android4337.utils.decodeBase64
 import java.math.BigInteger
 
@@ -16,5 +16,5 @@ data class CreateCredentialResponseContent @JsonCreator constructor(
 )
 
 fun CreateCredentialResponseContent.getPublicKeyCoordinates(): Pair<BigInteger, BigInteger> {
-    return PassKeyUtils.publicKeyToXYCoordinates(publicKey.decodeBase64())
+    return PasskeyUtils.publicKeyToXYCoordinates(publicKey.decodeBase64())
 }

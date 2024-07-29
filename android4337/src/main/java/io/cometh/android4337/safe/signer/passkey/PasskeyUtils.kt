@@ -7,7 +7,7 @@ import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
 
-object PassKeyUtils {
+object PasskeyUtils {
 
     fun publicKeyToXYCoordinates(publicKeyBytes: ByteArray): Pair<BigInteger, BigInteger> {
         val keyFactory = KeyFactory.getInstance("EC")

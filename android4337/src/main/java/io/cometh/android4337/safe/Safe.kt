@@ -1,6 +1,6 @@
 package io.cometh.android4337.safe
 
-import io.cometh.android4337.safe.signer.passkey.PassKey
+import io.cometh.android4337.safe.signer.passkey.Passkey
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.removeOx
@@ -126,7 +126,7 @@ object Safe {
 
     fun getSafeInitializerWithPasskey(
         config: SafeConfig,
-        passKey: PassKey
+        passkey: Passkey
     ): ByteArray {
         return getSetupFunctionData(
             _owners = listOf(config.getSafeWebAuthnSharedSignerAddress()),
@@ -137,8 +137,8 @@ object Safe {
                 safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
                 enableModuleData = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress())),
                 sharedSignerConfigureData = getSharedSignerConfigureCallData(
-                    x = passKey.x,
-                    y = passKey.y,
+                    x = passkey.x,
+                    y = passkey.y,
                     verifiers = config.safeP256VerifierAddress.hexToBigInt()
                 )
             ),

@@ -11,7 +11,7 @@ Android4337 is an Android SDK for building with [ERC-4337](https://eips.ethereum
   by [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace).
 - **Paymaster**: Enables paymaster for gas fee sponsorship.
 - **Modular and Extensible**: Easily create and integrate your own smart account, bundlers, paymasters, and signers.
-- **Webauthn and PassKey**: We provide a way to sign user operations using Webauthn and PassKey.
+- **Webauthn and Passkey**: We provide a way to sign user operations using Webauthn and Passkey.
 
 ## Installation
 
@@ -92,7 +92,7 @@ fun createNewAccount(
 - **config**: If not provided, the default configuration will be used (
   see [Safe Config](https://github.com/cometh-hq/android4337/blob/main/android4337/src/main/java/io/cometh/android4337/safe/SafeConfig.kt)).
 - **entryPointAddress**: The address of the entry point contract. By default, is uses the V7 entry point address.
-- **signer**: If not provided, user operation will be signed with `EcdsaSigner` using the provided credentials. For PassKey, use `PassKeySigner`.
+- **signer**: If not provided, user operation will be signed with `EcdsaSigner` using the provided credentials. For Passkey, use `PasskeySigner`.
 - **paymasterClient**: If specified, it will be used when preparing the user operation to sponsor gas fees.
 - **gasPriceProvider**: If not provided, the `RPCGasEstimator` will be used with default parameters (
   see [Gas Price Provider](https://github.com/cometh-hq/android4337/tree/features/add-docs?tab=readme-ov-file#gas-price-provider)).
@@ -234,29 +234,38 @@ for more details.
 To sign user operations, you need a Signer. Android4337 provides two implementations:
 
 - `EcdsaSigner`: Signs user operations using the provided credentials. Used by default.
-- `PassKeySigner`: Signs user operations using a PassKey.
+- `PasskeySigner`: Signs user operations using a Passkey.
 
-#### PassKey Signer
+#### Passkey Signer
 
-To sign user operations using the PassKey, you need to create a `PassKeySigner` instance and launch the passkey creation user flow.
+To sign user operations using the Passkey, you need to create a `PasskeySigner` instance and launch the passkey creation user flow.
 
 ```kotlin
-val passKeySigner = PassKeySigner(
-    rpId = "my.rp.id",
-    context = context, // Android context
-)
+val passkeySigner = PasskeySigner(
+    rpId = "my.rp.id", // must be your package name
+    userName = "user_name",
+    context = context // Android context
+) // will load passkey from SharedPreferences if already created
 
 // must be done before creating SafeAccount, will launch a passkey creation user flow
 // can throw a GetCredentialException (from CredentialsManager) if create_credentials fails
 coroutineScope.launch {
-    passKeySigner.createPasskey(userName = "user_name") // or passKeySigner.importPasskey(x, y)
+    passkeySigner.createPasskey() // will create passkey and save it in SharedPreferences
 }
 
 // ...
 
+val passkey = passkeySigner.getPasskey() // returns the passkey if created
+
+```
+
+Then, you can use the `PasskeySigner` instance when creating a Safe Account:
+
+```kotlin
+
 val safeAccount = SafeAccount.createNewAccount(
     // ...
-    signer = passKeySigner
+    signer = passkeySigner
 )
 
 // when sending an user operation, it will prompt the user to sign the operation using the passkey

@@ -1,10 +1,11 @@
 package io.cometh.android4337.passkey
 
 import android.content.Context
+import android.content.SharedPreferences
 import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.signer.passkey.CredentialsApiHelper
-import io.cometh.android4337.safe.signer.passkey.PassKeySigner
-import io.cometh.android4337.safe.signer.passkey.PassKeyUtils
+import io.cometh.android4337.safe.signer.passkey.PasskeySigner
+import io.cometh.android4337.safe.signer.passkey.PasskeyUtils
 import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthenticationResponse
 import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthenticationResponseContent
 import io.cometh.android4337.utils.hexToByteArray
@@ -19,14 +20,14 @@ import org.junit.Test
 import java.util.Base64
 
 
-class PassKeySignerTest {
+class PasskeySignerTest {
 
 
     @Test
     fun extractRS() {
         val signature = "MEQCIAZnp2j6bRUj49CFmhuHI_RKh_8puFto169kkI5mLsq8AiALHKJ9q5ogwIKKyxuA2GEyY-SAH5WIqpzoOno0T4FONQ"
         val signatureData = decodeBase64Url(signature)
-        val (r, s) = PassKeyUtils.extractRSFromSignature(signatureData)
+        val (r, s) = PasskeyUtils.extractRSFromSignature(signatureData)
         Assert.assertEquals("0667a768fa6d1523e3d0859a1b8723f44a87ff29b85b68d7af64908e662ecabc", r.toHexNoPrefix())
         Assert.assertEquals("0b1ca27dab9a20c0828acb1b80d8613263e4801f9588aa9ce83a7a344f814e35", s.toHexNoPrefix())
     }
@@ -34,7 +35,7 @@ class PassKeySignerTest {
     @Test
     fun publicKeyToXYCoordinates() {
         val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeZFfXkVoEtY2GkLSYvgSFD9Ryt6QE4b_8bP__AdJavVZhJt7oLAybNYIJ2RSH5qDGkmdITCScDxsDQeG7KZBGA"
-        val (x, y) = PassKeyUtils.publicKeyToXYCoordinates(decodeBase64Url(publicKey))
+        val (x, y) = PasskeyUtils.publicKeyToXYCoordinates(decodeBase64Url(publicKey))
         Assert.assertEquals("0x79915f5e456812d6361a42d262f812143f51cade901386fff1b3fffc07496af5", x.toHex())
         Assert.assertEquals("0x59849b7ba0b0326cd6082764521f9a831a499d213092703c6c0d0786eca64118", y.toHex())
     }
@@ -42,9 +43,14 @@ class PassKeySignerTest {
     @Test
     fun sign() {
         val credentialsApiHelper = mockk<CredentialsApiHelper>()
-        val signer = PassKeySigner(
+        val context = mockk<Context>()
+        val sharedPrefs = mockk<SharedPreferences>()
+        every { context.getSharedPreferences(any(), any()) } returns sharedPrefs
+        every { sharedPrefs.contains(any())} returns false
+        val signer = PasskeySigner(
             rpId = "cometh",
-            context = mockk<Context>(),
+            userName = "test",
+            context = context,
             credentialsApiHelper = credentialsApiHelper,
             safeConfig = SafeConfig.getDefaultConfig()
         )

@@ -27,9 +27,8 @@ import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.safe.SafeAccount
-import io.cometh.android4337.safe.signer.passkey.PassKeySigner
+import io.cometh.android4337.safe.signer.passkey.PasskeySigner
 import io.cometh.android4337.utils.hexToAddress
-import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
 import io.cometh.android4337.utils.toHex
 import kotlinx.coroutines.Dispatchers
@@ -57,10 +56,12 @@ fun SignUpScreen() {
 //    val paymasterClient = PaymasterClient("https://paymaster.cometh.io/$chainId?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx")
     val prefs = context.getSharedPreferences("passkey", Context.MODE_PRIVATE)
 
-    val passKeySigner = PassKeySigner(
+    val passkeySigner = PasskeySigner(
         rpId = "sample4337.cometh.io",
+        userName = "alex",
         context = context,
     )
+
     Log.i("SignUpScreen", "publicKey=${credentials.address}")
 
     LaunchedEffect(safeAddress) {
@@ -78,11 +79,8 @@ fun SignUpScreen() {
     }
 
     LaunchedEffect(Unit) {
-        val x = prefs.getString("x", null)
-        val y = prefs.getString("y", null)
-        if (x != null && y != null) {
-            passKeySigner.importPassKey(x.hexToBigInt(), y.hexToBigInt())
-            val passKey = passKeySigner.getPasskey()!!
+        val passkey = passkeySigner.getPasskey()
+        if (passkey != null) {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     safeAccount = SafeAccount.createNewAccount(
@@ -90,14 +88,14 @@ fun SignUpScreen() {
                         bundlerClient = bundlerClient,
                         chainId = chainId,
                         web3Service = rpcService,
-                        signer = passKeySigner,
+                        signer = passkeySigner,
 //                        gasPriceProvider = RPCGasEstimator(rpcService),
 //                        paymasterClient = paymasterClient
                     )
                     signUpResult = """
                         Passkey Loaded ✅
-                        x=${passKey.x.toHex()}
-                        y=${passKey.y.toHex()}
+                        x=${passkey.x.toHex()}
+                        y=${passkey.y.toHex()}
                     """.trimIndent()
                     safeAddress = safeAccount!!.accountAddress
                     Log.i("SignUpScreen", signUpResult)
@@ -120,28 +118,28 @@ fun SignUpScreen() {
         Button(onClick = {
             coroutineScope.launch {
                 try {
-                    passKeySigner.createPasskey("alex")
-                    passKeySigner.getPasskey()?.let { passKey ->
+                    passkeySigner.createPasskey()
+                    passkeySigner.getPasskey()?.let { passkey ->
                         safeAccount = withContext(Dispatchers.IO) {
                             return@withContext SafeAccount.createNewAccount(
                                 credentials = credentials,
                                 bundlerClient = bundlerClient,
                                 chainId = chainId,
                                 web3Service = rpcService,
-                                signer = passKeySigner,
+                                signer = passkeySigner,
 //                            paymasterClient = paymasterClient
                             )
                         }
                         signUpResult = """
                         Passkey Created ✅
-                        x=${passKey.x.toHex()}
-                        y=${passKey.y.toHex()}
+                        x=${passkey.x.toHex()}
+                        y=${passkey.y.toHex()}
                     """.trimIndent()
                         safeAddress = safeAccount!!.accountAddress
 
                         prefs.edit {
-                            putString("x", passKey.x.toHex())
-                            putString("y", passKey.y.toHex())
+                            putString("x", passkey.x.toHex())
+                            putString("y", passkey.y.toHex())
                         }
 
                         Log.i("SignUpScreen", signUpResult)

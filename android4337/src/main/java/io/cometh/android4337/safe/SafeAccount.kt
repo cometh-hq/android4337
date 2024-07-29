@@ -14,8 +14,8 @@ import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.signer.Signer
 import io.cometh.android4337.safe.signer.SignerException
 import io.cometh.android4337.safe.signer.ecdsa.EcdsaSigner
-import io.cometh.android4337.safe.signer.passkey.PassKey
-import io.cometh.android4337.safe.signer.passkey.PassKeySigner
+import io.cometh.android4337.safe.signer.passkey.Passkey
+import io.cometh.android4337.safe.signer.passkey.PasskeySigner
 import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
@@ -111,13 +111,13 @@ class SafeAccount private constructor(
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
             web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
-            var passKey: PassKey? = null
-            if (signer is PassKeySigner) passKey = signer.getPasskey()
+            var passkey: Passkey? = null
+            if (signer is PasskeySigner) passkey = signer.getPasskey()
             val predictedAddress = predictAddress(
                 owner = credentials.address,
                 web3jTransactionManager = web3jTransactionManager,
                 config = config,
-                passKey = passKey
+                passkey = passkey
             )
             return SafeAccount(
                 predictedAddress,
@@ -140,14 +140,14 @@ class SafeAccount private constructor(
             owner: String,
             web3jTransactionManager: TransactionManager,
             config: SafeConfig = SafeConfig.getDefaultConfig(),
-            passKey: PassKey? = null
+            passkey: Passkey? = null
         ): String {
             owner.requireHexAddress()
             val nonce = BigInteger.ZERO
-            val safeInitializer = if (passKey == null) {
+            val safeInitializer = if (passkey == null) {
                 Safe.getSafeInitializer(owner.hexToAddress(), config)
             } else {
-                Safe.getSafeInitializerWithPasskey(config, passKey)
+                Safe.getSafeInitializerWithPasskey(config, passkey)
             }
             val keccak256Setup = Hash.sha3(safeInitializer)
             val saltHash = AbiEncoder.encodePackedParameters(listOf(Bytes32(keccak256Setup), Uint256(nonce)))
@@ -239,10 +239,10 @@ class SafeAccount private constructor(
     }
 
     override fun getFactoryData(): ByteArray {
-        val safeInitializer = if (signer is PassKeySigner) {
+        val safeInitializer = if (signer is PasskeySigner) {
             Safe.getSafeInitializerWithPasskey(
                 config = config,
-                passKey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
+                passkey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
             )
         } else {
             Safe.getSafeInitializer(owner = credentials.address.hexToAddress(), config = config)

@@ -41,7 +41,7 @@ class CredentialsApiHelper(
         return ObjectMapper().readValue(responseJson, GetCredentialAuthenticationResponse::class.java)
     }
 
-    suspend fun createCredential(rpId: String, rpName: String, userId: String, userName: String, challenge: ByteArray): CreateCredentialResponse? {
+    suspend fun createCredential(rpId: String, rpName: String, userId: String, userName: String, challenge: ByteArray): CreateCredentialResponse {
         val request = CreatePublicKeyCredentialRequest(
             requestJson = createJsonFor(
                 rpId = rpId,

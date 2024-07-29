@@ -7,7 +7,7 @@ import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
-import io.cometh.android4337.safe.signer.passkey.PassKey
+import io.cometh.android4337.safe.signer.passkey.Passkey
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.toHex
 import io.mockk.MockKAnnotations
@@ -122,14 +122,14 @@ class SafeAccountTest {
     }
 
     @Test
-    fun predictAddressWithPassKey() {
+    fun predictAddressWithPasskey() {
         every {
             transactionManager.sendCall(any(), any(), any())
         } returns TestsData.proxyCode
         val address = SafeAccount.predictAddress(
             TestsData.account1Credentials.address,
             transactionManager,
-            passKey = PassKey(
+            passkey = Passkey(
                 x="0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
                 y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
             )

@@ -5,6 +5,7 @@ import io.cometh.android4337.bundler.response.EthEstimateUserOperationGasRespons
 import io.cometh.android4337.bundler.response.EthGetUserOperationByHashResponse
 import io.cometh.android4337.bundler.response.EthGetUserOperationReceiptResponse
 import io.cometh.android4337.bundler.response.EthSendUserOperationResponse
+import io.cometh.android4337.bundler.response.EthSupportedEntryPointsResponse
 import io.cometh.android4337.toMap
 import io.cometh.android4337.utils.requireHexAddress
 import org.web3j.protocol.Web3jService
@@ -51,6 +52,15 @@ class SimpleBundlerClient(private val web3jService: Web3jService) : BundlerClien
             listOf(userOperationHash),
             web3jService,
             EthGetUserOperationByHashResponse::class.java
+        )
+    }
+
+    override fun ethSupportedEntryPoints(): Request<Any, EthSupportedEntryPointsResponse> {
+        return Request(
+            "eth_supportedEntryPoints",
+            emptyList(),
+            web3jService,
+            EthSupportedEntryPointsResponse::class.java
         )
     }
 }

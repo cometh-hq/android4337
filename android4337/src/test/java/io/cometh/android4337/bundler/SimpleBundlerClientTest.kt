@@ -73,6 +73,24 @@ class SimpleBundlerClientTest {
     }
 
     @Test
+    fun ethSupportedEntryPoints() {
+        every { httpResponseStub.getResponse(any()) } returns """
+            {
+            	"jsonrpc": "2.0",
+            	"id": 1,
+            	"result": [
+            		"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+            		"0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+            	]
+            }
+        """.trimIndent().toInputStream()
+        val resp = bundlerClient.ethSupportedEntryPoints().send()
+        val result = resp.result
+        assertEquals("0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", result[0])
+        assertEquals("0x0000000071727De22E5E9d8BAf0edAc6f37da032", result[1])
+    }
+
+    @Test
     fun ethSendUserOperation() {
         every { httpResponseStub.getResponse(any()) } returns """
             {

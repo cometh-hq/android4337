@@ -4,6 +4,7 @@ import io.cometh.android4337.bundler.response.EthEstimateUserOperationGasRespons
 import io.cometh.android4337.bundler.response.EthGetUserOperationByHashResponse
 import io.cometh.android4337.bundler.response.EthGetUserOperationReceiptResponse
 import io.cometh.android4337.bundler.response.EthSendUserOperationResponse
+import io.cometh.android4337.bundler.response.EthSupportedEntryPointsResponse
 import org.web3j.protocol.core.Request
 
 interface BundlerClient {
@@ -11,4 +12,5 @@ interface BundlerClient {
     fun ethEstimateUserOperationGas(userOperation: UserOperation, entryPointAddress: String): Request<Any, EthEstimateUserOperationGasResponse>
     fun ethGetUserOperationReceipt(userOperationHash: String): Request<String, EthGetUserOperationReceiptResponse>
     fun ethGetUserOperationByHash(userOperationHash: String): Request<String, EthGetUserOperationByHashResponse>
+    fun ethSupportedEntryPoints(): Request<Any, EthSupportedEntryPointsResponse>
 }

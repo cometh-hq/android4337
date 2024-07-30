@@ -31,7 +31,7 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation "com.github.cometh-hq:android4337:<last_version>"
+    implementation "com.github.cometh-hq:android4337:<latest_version>"
 }
 ```
 

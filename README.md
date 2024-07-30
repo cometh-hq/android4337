@@ -10,8 +10,8 @@ Android4337 is an Android SDK for building with [ERC-4337](https://eips.ethereum
 - **Bundler**: Comprehensive support for all bundler methods as defined
   by [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace).
 - **Paymaster**: Enables paymaster for gas fee sponsorship.
+- **Signers**: Supports both traditional EOA signers and Passkey signers, enabling flexible and secure authentication mechanisms.
 - **Modular and Extensible**: Easily create and integrate your own smart account, bundlers, paymasters, and signers.
-- **Webauthn and Passkey**: We provide a way to sign user operations using Webauthn and Passkey.
 
 ## Installation
 
@@ -47,18 +47,14 @@ Don't forget to add the internet permission to your AndroidManifest.xml file:
 ### Overview
 
 ```kotlin
-import com.cometh.android4337.Android4337
-
 // ...
 
-val credentials = WalletUtils.loadCredentials("MY_PASSWORD", "MY_PATH")
+val signer = EOASigner(WalletUtils.loadCredentials("MY_PASSWORD", "MY_PATH"))
 val rpcService = HttpService("https://an-infura-or-similar-url.com/123")
-
-val bundlerService = HttpService("https://cometh-or-similar-4337-provider/123")
-val bundlerClient = SimpleBundlerClient(bundlerService)
+val bundlerClient = SimpleBundlerClient(HttpService("https://cometh-or-similar-4337-provider/123"))
 
 val chainId = 11155111 // for example, sepolia
-val safeAccount = SafeAccount.createNewAccount(credentials, bundlerClient, chainId, rpcService)
+val safeAccount = SafeAccount.createNewAccount(signer, bundlerClient, chainId, rpcService)
 
 safeAccount.sendUserOperation("TO_ADDRESS", value = BigInteger.ZERO, data = "0x".toByteArray())
 ```
@@ -76,23 +72,21 @@ In this version of Android4337, we provide support for [Safe Accounts](https://s
 
 ```kotlin
 fun createNewAccount(
-    credentials: Credentials,
-    bundlerClient: BundlerClient,
-    chainId: Int,
-    web3Service: Service,
-    config: SafeConfig = SafeConfig.createDefaultConfig(),
-    entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
-    signer: Signer = EcdsaSigner(credentials),
-    paymasterClient: PaymasterClient? = null,
-    gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
-    web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
+  signer: Signer,
+  bundlerClient: BundlerClient,
+  chainId: Int,
+  web3Service: Service,
+  config: SafeConfig = SafeConfig.getDefaultConfig(),
+  entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+  paymasterClient: PaymasterClient? = null,
+  gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
 )
 ```
 
+- **signer**: If not provided, user operation will be signed with `EcdsaSigner` using the provided credentials. For Passkey, use `PasskeySigner`.
 - **config**: If not provided, the default configuration will be used (
   see [Safe Config](https://github.com/cometh-hq/android4337/blob/main/android4337/src/main/java/io/cometh/android4337/safe/SafeConfig.kt)).
 - **entryPointAddress**: The address of the entry point contract. By default, is uses the V7 entry point address.
-- **signer**: If not provided, user operation will be signed with `EcdsaSigner` using the provided credentials. For Passkey, use `PasskeySigner`.
 - **paymasterClient**: If specified, it will be used when preparing the user operation to sponsor gas fees.
 - **gasPriceProvider**: If not provided, the `RPCGasEstimator` will be used with default parameters (
   see [Gas Price Provider](https://github.com/cometh-hq/android4337/tree/features/add-docs?tab=readme-ov-file#gas-price-provider)).
@@ -105,17 +99,15 @@ fun createNewAccount(
 @WorkerThread
 @Throws(IOException::class, RuntimeException::class)
 fun fromAddress(
-    address: String,
-    credentials: Credentials,
-    bundlerClient: BundlerClient,
-    chainId: Int,
-    web3Service: Service,
-    config: SafeConfig = SafeConfig.createDefaultConfig(),
-    entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
-    signer: Signer = EcdsaSigner(credentials),
-    paymasterClient: PaymasterClient? = null,
-    gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
-    web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
+  address: String,
+  signer: Signer,
+  bundlerClient: BundlerClient,
+  chainId: Int,
+  web3Service: Service,
+  config: SafeConfig = SafeConfig.getDefaultConfig(),
+  entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
+  paymasterClient: PaymasterClient? = null,
+  gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
 )
 ```
 
@@ -151,7 +143,6 @@ provide [the implementation](https://github.com/cometh-hq/android4337/blob/main/
   value, data and operation).
 - `fun getFactoryAddress(): Address` Returns the address of the factory to be used to deploy the wallet.
 - `fun getFactoryData(): ByteArray` Returns the call data to be passed to the factory to deploy the wallet.
-- `fun getDummySignature(): String` Returns a dummy signature to be used in user operation gas estimation.
 
 ### Credentials
 
@@ -233,7 +224,7 @@ for more details.
 
 To sign user operations, you need a Signer. Android4337 provides two implementations:
 
-- `EcdsaSigner`: Signs user operations using the provided credentials. Used by default.
+- `EOASigner`: Signs user operations using the provided credentials. Used by default.
 - `PasskeySigner`: Signs user operations using a Passkey.
 
 #### Passkey Signer

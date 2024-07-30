@@ -31,9 +31,11 @@ Add the dependency:
 
 ```gradle
 dependencies {
-    implementation "com.github.cometh-hq:android4337:0.1.0"
+    implementation "com.github.cometh-hq:android4337:<last_version>"
 }
 ```
+
+set <last_version> instead of fixed version to get the latest version.
 
 Don't forget to add the internet permission to your AndroidManifest.xml file:
 

@@ -1,5 +1,7 @@
 package io.cometh.android4337
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
@@ -10,22 +12,22 @@ import io.cometh.android4337.web3j.AbiEncoder
 import org.web3j.abi.datatypes.DynamicBytes
 import org.web3j.abi.datatypes.generated.Uint128
 
-data class UserOperation(
-    val sender: String,
-    val nonce: String,
-    val factory: String? = null,
-    val factoryData: String? = null,
-    val callData: String,
-    var callGasLimit: String,
-    var verificationGasLimit: String,
-    var preVerificationGas: String,
-    var maxFeePerGas: String,
-    var maxPriorityFeePerGas: String,
-    var paymaster: String? = null,
-    var paymasterData: String? = null,
-    var paymasterVerificationGasLimit: String? = null,
-    var paymasterPostOpGasLimit: String? = null,
-    var signature: String? = null
+data class UserOperation @JsonCreator constructor(
+    @JsonProperty("sender") val sender: String,
+    @JsonProperty("nonce") val nonce: String,
+    @JsonProperty("factory") val factory: String? = null,
+    @JsonProperty("factoryData") val factoryData: String? = null,
+    @JsonProperty("callData") val callData: String,
+    @JsonProperty("callGasLimit") var callGasLimit: String,
+    @JsonProperty("verificationGasLimit") var verificationGasLimit: String,
+    @JsonProperty("preVerificationGas") var preVerificationGas: String,
+    @JsonProperty("maxFeePerGas") var maxFeePerGas: String,
+    @JsonProperty("maxPriorityFeePerGas") var maxPriorityFeePerGas: String,
+    @JsonProperty("paymaster") var paymaster: String? = null,
+    @JsonProperty("paymasterData") var paymasterData: String? = null,
+    @JsonProperty("paymasterVerificationGasLimit") var paymasterVerificationGasLimit: String? = null,
+    @JsonProperty("paymasterPostOpGasLimit") var paymasterPostOpGasLimit: String? = null,
+    @JsonProperty("signature") var signature: String? = null
 ) {
     init {
         sender.requireHex()
@@ -80,8 +82,10 @@ fun UserOperation.toMap(): Map<String, String> {
     if (this.signature != null) map["signature"] = this.signature!!
     if (this.paymaster != null) {
         map["paymaster"] = this.paymaster!!
-        if (this.paymasterVerificationGasLimit != null) map["paymasterVerificationGasLimit"] = this.paymasterVerificationGasLimit!!
-        if (this.paymasterPostOpGasLimit != null) map["paymasterPostOpGasLimit"] = this.paymasterPostOpGasLimit!!
+        if (this.paymasterVerificationGasLimit != null) map["paymasterVerificationGasLimit"] =
+            this.paymasterVerificationGasLimit!!
+        if (this.paymasterPostOpGasLimit != null) map["paymasterPostOpGasLimit"] =
+            this.paymasterPostOpGasLimit!!
         if (this.paymasterData != null) map["paymasterData"] = this.paymasterData!!
     }
     return map

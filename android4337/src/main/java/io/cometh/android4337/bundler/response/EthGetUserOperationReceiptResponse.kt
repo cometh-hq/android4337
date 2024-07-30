@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.ObjectReader
 import org.web3j.protocol.ObjectMapperFactory
 import org.web3j.protocol.core.Response
+import org.web3j.protocol.core.methods.response.Log
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import java.io.IOException
 
@@ -36,8 +37,8 @@ data class UserOperationReceipt @JsonCreator constructor(
     @JsonProperty("actualGasCost") val actualGasCost: String,
     @JsonProperty("success") val success: String,
     @JsonProperty("paymaster") val paymaster: String?,
-    @JsonProperty("receipt") val receipt: TransactionReceipt
-//todo add @JsonProperty("logs") val logs: List<Logs>,
+    @JsonProperty("receipt") val receipt: TransactionReceipt,
+    @JsonProperty("logs") val logs: List<Log>,
 )
 
 

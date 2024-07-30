@@ -1,5 +1,6 @@
 package io.cometh.android4337.safe
 
+import android.content.Context
 import io.cometh.android4337.CustomHttpService
 import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.HttpResponseStub
@@ -7,12 +8,16 @@ import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.signer.eoa.EOASigner
 import io.cometh.android4337.safe.signer.passkey.Passkey
+import io.cometh.android4337.safe.signer.passkey.PasskeySigner
+import io.cometh.android4337.toInputStream
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.toHex
 import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -48,37 +53,36 @@ class SafeAccountTest {
         web3Service = CustomHttpService(httpResponseStub)
         safeAccount1 = SafeAccount.fromAddress(
             address = TestsData.account1SafeAddress,
-            credentials = TestsData.account1Credentials,
+            EOASigner(TestsData.account1Credentials),
             bundlerClient,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,
             gasPriceProvider = gasPriceProvider,
-            web3jTransactionManager = transactionManager
         )
         safeAccount2 = SafeAccount.fromAddress(
             TestsData.account2SafeAddress,
-            TestsData.account2Credentials,
+            EOASigner(TestsData.account2Credentials),
             bundlerClient,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,
             gasPriceProvider = gasPriceProvider,
-            web3jTransactionManager = transactionManager
         )
     }
 
     @Test
     fun createNewAccount() {
-        every { transactionManager.sendCall(any(), any(), any()) } returns TestsData.proxyCode
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "${TestsData.proxyCode}" }
+        """.trimIndent().toInputStream()
         val safeAccount = SafeAccount.createNewAccount(
-            credentials = TestsData.account1Credentials,
+            EOASigner(TestsData.account1Credentials),
             bundlerClient,
             chainId,
             web3Service,
             paymasterClient = paymasterClient,
             gasPriceProvider = gasPriceProvider,
-            web3jTransactionManager = transactionManager
         )
         assertEquals(TestsData.account1SafeAddress, safeAccount.safeAddress)
     }
@@ -99,53 +103,64 @@ class SafeAccountTest {
 
     @Test
     fun predictAddress1() {
-        every {
-            transactionManager.sendCall(any(), any(), any())
-        } returns TestsData.proxyCode
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "${TestsData.proxyCode}" }
+        """.trimIndent().toInputStream()
         val address = SafeAccount.predictAddress(
-            TestsData.account1Credentials.address,
-            transactionManager,
+            EOASigner(TestsData.account1Credentials),
+            web3Service
         )
         assertEquals(TestsData.account1SafeAddress, address)
     }
 
     @Test
     fun predictAddress2() {
-        every {
-            transactionManager.sendCall(any(), any(), any())
-        } returns TestsData.proxyCode
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "${TestsData.proxyCode}" }
+        """.trimIndent().toInputStream()
         val address = SafeAccount.predictAddress(
-            TestsData.account2Credentials.address,
-            transactionManager,
+            EOASigner(TestsData.account2Credentials),
+            web3Service,
         )
         assertEquals(TestsData.account2SafeAddress, address)
     }
 
     @Test
     fun predictAddressWithPasskey() {
-        every {
-            transactionManager.sendCall(any(), any(), any())
-        } returns TestsData.proxyCode
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "${TestsData.proxyCode}" }
+        """.trimIndent().toInputStream()
+        val context = mockk<Context>()
+        every { context.getSharedPreferences(any(), any()) } returns mockk()
         val address = SafeAccount.predictAddress(
-            TestsData.account1Credentials.address,
-            transactionManager,
-            passkey = Passkey(
-                x="0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
-                y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
-            )
+            PasskeySigner(
+                rpId = "rpId",
+                userName = "userName",
+                context = context,
+                passkey = Passkey(
+                    x="0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
+                    y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
+                )
+            ),
+            web3Service,
+
         )
         assertEquals("0xfF724471DcB34e42C715163B60A0881fAF7a9C96", address)
     }
 
     @Test
     fun getOwners() {
+        val expected = "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002f920a66c2f9760f6fe5f49b289322ddf60f9103"
+        every { httpResponseStub.getResponse(any()) } returns """
+            { "jsonrpc": "2.0", "id": 1, "result": "$expected" }
+        """.trimIndent().toInputStream()
         every {
             transactionManager.sendCall(
                 any(),
                 any(),
                 any()
             )
-        } returns "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002f920a66c2f9760f6fe5f49b289322ddf60f9103"
+        } returns ""
         assertEquals("0x2f920a66c2f9760f6fe5f49b289322ddf60f9103", safeAccount1.getOwners()!!.first().value)
     }
 
@@ -186,7 +201,7 @@ class SafeAccountTest {
     fun fromAddress() {
         SafeAccount.fromAddress(
             "wrong_address",
-            TestsData.account1Credentials,
+            signer = EOASigner(TestsData.account1Credentials),
             bundlerClient = bundlerClient,
             entryPointAddress = entryPointAddress,
             web3Service = web3Service,

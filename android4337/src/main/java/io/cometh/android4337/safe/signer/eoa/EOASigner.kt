@@ -1,11 +1,11 @@
-package io.cometh.android4337.safe.signer.ecdsa
+package io.cometh.android4337.safe.signer.eoa
 
 import io.cometh.android4337.safe.signer.Signer
 import io.cometh.android4337.utils.toByteArray
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.Sign
 
-class EcdsaSigner(
+class EOASigner(
     val credentials: Credentials
 ) : Signer {
 
@@ -21,5 +21,9 @@ class EcdsaSigner(
 
     override fun getDummySignature(): String {
         return ECDSA_DUMMY_SIGNATURE
+    }
+
+    fun getAddress(): String {
+        return credentials.address
     }
 }

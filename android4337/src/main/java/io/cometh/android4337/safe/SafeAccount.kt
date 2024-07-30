@@ -13,8 +13,7 @@ import io.cometh.android4337.getPaymasterAndData
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.signer.Signer
 import io.cometh.android4337.safe.signer.SignerException
-import io.cometh.android4337.safe.signer.ecdsa.EcdsaSigner
-import io.cometh.android4337.safe.signer.passkey.Passkey
+import io.cometh.android4337.safe.signer.eoa.EOASigner
 import io.cometh.android4337.safe.signer.passkey.PasskeySigner
 import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexToAddress
@@ -37,30 +36,27 @@ import org.web3j.abi.datatypes.generated.Bytes32
 import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.abi.datatypes.generated.Uint48
 import org.web3j.abi.datatypes.generated.Uint8
-import org.web3j.crypto.Credentials
 import org.web3j.crypto.Hash
 import org.web3j.protocol.Service
 import org.web3j.protocol.Web3j
+import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.DefaultBlockParameterName
-import org.web3j.tx.RawTransactionManager
-import org.web3j.tx.TransactionManager
+import org.web3j.tx.ClientTransactionManager
 import java.io.IOException
 import java.math.BigInteger
 
 class SafeAccount private constructor(
+    signer: Signer,
     val safeAddress: String,
-    credentials: Credentials,
     bundlerClient: BundlerClient,
     gasPriceProvider: UserOperationGasPriceProvider,
     entryPointAddress: String,
     web3Service: Service,
     private val chainId: Int,
     private val config: SafeConfig,
-    private val signer: Signer = EcdsaSigner(credentials),
     paymasterClient: PaymasterClient? = null,
-    transactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
 ) : SmartAccount(
-    credentials, bundlerClient, gasPriceProvider, entryPointAddress, web3Service, paymasterClient, safeAddress, transactionManager
+    signer, bundlerClient, gasPriceProvider, entryPointAddress, web3Service, paymasterClient, safeAddress
 ) {
 
     init {
@@ -71,89 +67,81 @@ class SafeAccount private constructor(
     companion object {
         fun fromAddress(
             address: String,
-            credentials: Credentials,
+            signer: Signer,
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
             config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
-            signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
-            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
             return SafeAccount(
+                signer,
                 address,
-                credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
                 web3Service,
                 chainId,
                 config,
-                signer,
                 paymasterClient,
-                web3jTransactionManager
             )
         }
 
         @WorkerThread
         @Throws(IOException::class, RuntimeException::class)
         fun createNewAccount(
-            credentials: Credentials,
+            signer: Signer,
             bundlerClient: BundlerClient,
             chainId: Int,
             web3Service: Service,
             config: SafeConfig = SafeConfig.getDefaultConfig(),
             entryPointAddress: String = EntryPointContract.ENTRY_POINT_ADDRESS_V7,
-            signer: Signer = EcdsaSigner(credentials),
             paymasterClient: PaymasterClient? = null,
             gasPriceProvider: UserOperationGasPriceProvider = RPCGasEstimator(web3Service),
-            web3jTransactionManager: TransactionManager = RawTransactionManager(Web3j.build(web3Service), credentials)
         ): SafeAccount {
-            var passkey: Passkey? = null
-            if (signer is PasskeySigner) passkey = signer.getPasskey()
             val predictedAddress = predictAddress(
-                owner = credentials.address,
-                web3jTransactionManager = web3jTransactionManager,
+                signer = signer,
+                web3Service = web3Service,
                 config = config,
-                passkey = passkey
             )
             return SafeAccount(
+                signer,
                 predictedAddress,
-                credentials,
                 bundlerClient,
                 gasPriceProvider,
                 entryPointAddress,
                 web3Service,
                 chainId,
                 config,
-                signer,
                 paymasterClient,
-                web3jTransactionManager
             )
         }
 
         @WorkerThread
         @Throws(IOException::class, SmartAccountException::class)
         fun predictAddress(
-            owner: String,
-            web3jTransactionManager: TransactionManager,
+            signer: Signer,
+            web3Service: Web3jService,
             config: SafeConfig = SafeConfig.getDefaultConfig(),
-            passkey: Passkey? = null
         ): String {
-            owner.requireHexAddress()
-            val nonce = BigInteger.ZERO
-            val safeInitializer = if (passkey == null) {
-                Safe.getSafeInitializer(owner.hexToAddress(), config)
-            } else {
-                Safe.getSafeInitializerWithPasskey(config, passkey)
+            val safeInitializer = when (signer) {
+                is EOASigner -> Safe.getSafeInitializer(signer.getAddress().hexToAddress(), config)
+                is PasskeySigner -> {
+                    signer.getPasskey()?.let { passkey ->
+                        Safe.getSafeInitializerWithPasskey(config, passkey)
+                    } ?: throw SmartAccountException.PredictAddressError("no passkey available in PasskeySigner")
+                }
+
+                else -> throw SmartAccountException.Error("Unsupported signer type")
             }
+            val nonce = BigInteger.ZERO
             val keccak256Setup = Hash.sha3(safeInitializer)
             val saltHash = AbiEncoder.encodePackedParameters(listOf(Bytes32(keccak256Setup), Uint256(nonce)))
             val salt = Hash.sha3(saltHash)
 
-            val safeProxyContract = SafeProxyFactoryContract(web3jTransactionManager, config.safeProxyFactoryAddress)
+            val safeProxyContract = SafeProxyFactoryContract(web3Service, config.safeProxyFactoryAddress)
             val proxyCreationCode = safeProxyContract.proxyCreationCode() ?: throw SmartAccountException.Error("Failed to get proxy creation code")
             val deploymentCode = AbiEncoder.encodePackedParameters(
                 listOf(DynamicBytes(proxyCreationCode), Uint256(config.safeSingletonL2Address.hexToBigInt()))
@@ -164,6 +152,8 @@ class SafeAccount private constructor(
         }
 
     }
+
+    private val transactionManager = ClientTransactionManager(Web3j.build(web3Service), null)
 
     override fun signOperation(
         userOperation: UserOperation, entryPointAddress: String
@@ -204,10 +194,6 @@ class SafeAccount private constructor(
         return signature.hexToByteArray()
     }
 
-    override fun getDummySignature(): String {
-        return signer.getDummySignature()
-    }
-
     @WorkerThread
     fun getOwners(): List<Address>? {
         val inputParams = emptyList<Type<*>>()
@@ -239,13 +225,15 @@ class SafeAccount private constructor(
     }
 
     override fun getFactoryData(): ByteArray {
-        val safeInitializer = if (signer is PasskeySigner) {
-            Safe.getSafeInitializerWithPasskey(
-                config = config,
-                passkey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
-            )
-        } else {
-            Safe.getSafeInitializer(owner = credentials.address.hexToAddress(), config = config)
+        val safeInitializer = when (signer) {
+            is PasskeySigner -> {
+                Safe.getSafeInitializerWithPasskey(
+                    config = config,
+                    passkey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
+                )
+            }
+            is EOASigner -> Safe.getSafeInitializer(owner = signer.getAddress().hexToAddress(), config = config)
+            else -> throw SmartAccountException.Error("Unsupported signer type")
         }
         val createProxyWithNonceData = Safe.getCreateProxyWithNonceFunctionData(
             _singleton = config.getSafeSingletonL2Address(),

@@ -32,6 +32,7 @@ class PasskeySigner(
     private val context: Context,
     private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
     private val safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
+    passkey: Passkey? = null
 ) : Signer {
 
     val DUMMY_AUTHENTICATOR_DATA = "0xfefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe04fefefefe"
@@ -42,18 +43,19 @@ class PasskeySigner(
 
     private val prefs: SharedPreferences = context.getSharedPreferences("passkey-$rpId-$userName", Context.MODE_PRIVATE)
 
+    private var _passkey: Passkey? = passkey
+
     init {
         require(rpId.isNotEmpty()) { "rpId must be set" }
         require(userName.isNotEmpty()) { "userName must be set" }
-        if (hasSavedPasskey()) loadPasskey()
+        if (_passkey == null && hasSavedPasskey()) loadPasskey()
     }
 
-    private var passkey: Passkey? = null
 
     private fun loadPasskey() {
         val x = prefs.getString("x", null)!!.hexToBigInt()
         val y = prefs.getString("y", null)!!.hexToBigInt()
-        passkey = Passkey(x, y)
+        _passkey = Passkey(x, y)
     }
 
     private fun hasSavedPasskey(): Boolean {
@@ -65,7 +67,7 @@ class PasskeySigner(
      */
     suspend fun createPasskey() {
         require(!hasSavedPasskey()) { "passkey already created for rpId=${rpId} and userName=${userName}" }
-        require(passkey == null) { "passkey already loaded" }
+        require(_passkey == null) { "passkey already loaded" }
         require(userName.isNotEmpty()) { "userName must be set" }
         val createResponse = credentialsApiHelper.createCredential(
             rpId = rpId,
@@ -75,14 +77,14 @@ class PasskeySigner(
             challenge = SecureRandom().generateSeed(32)
         )
         val (x, y) = createResponse.response.getPublicKeyCoordinates()
-        passkey = Passkey(x, y)
+        _passkey = Passkey(x, y)
         savePasskeyInPrefs()
     }
 
     private fun savePasskeyInPrefs() {
         prefs.edit {
-            putString("x", passkey!!.x.toHex())
-            putString("y", passkey!!.y.toHex())
+            putString("x", _passkey!!.x.toHex())
+            putString("y", _passkey!!.y.toHex())
         }
     }
 
@@ -118,7 +120,7 @@ class PasskeySigner(
     }
 
     override fun checkRequirements() {
-        requireNotNull(passkey) { "PasskeySigner must have a pass key created or imported" }
+        requireNotNull(_passkey) { "PasskeySigner must have a pass key created or imported" }
     }
 
     override fun getDummySignature(): String {
@@ -147,7 +149,7 @@ class PasskeySigner(
     }
 
     fun getPasskey(): Passkey? {
-        return passkey
+        return _passkey
     }
 }
 

@@ -84,7 +84,6 @@ fun SignUpScreen() {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     safeAccount = SafeAccount.createNewAccount(
-                        credentials = credentials,
                         bundlerClient = bundlerClient,
                         chainId = chainId,
                         web3Service = rpcService,
@@ -122,7 +121,6 @@ fun SignUpScreen() {
                     passkeySigner.getPasskey()?.let { passkey ->
                         safeAccount = withContext(Dispatchers.IO) {
                             return@withContext SafeAccount.createNewAccount(
-                                credentials = credentials,
                                 bundlerClient = bundlerClient,
                                 chainId = chainId,
                                 web3Service = rpcService,

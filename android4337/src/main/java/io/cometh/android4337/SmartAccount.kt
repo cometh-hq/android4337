@@ -4,34 +4,35 @@ import androidx.annotation.WorkerThread
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.signer.Signer
+import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.requireHexAddress
 import io.cometh.android4337.utils.toChecksumHex
 import io.cometh.android4337.utils.toHex
 import org.web3j.abi.datatypes.Address
-import org.web3j.crypto.Credentials
 import org.web3j.protocol.Service
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameterName
-import org.web3j.tx.TransactionManager
 import java.io.IOException
 import java.math.BigInteger
+
 sealed class SmartAccountException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class Error(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
     class InvalidSignatureError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
     class UserOpGasEstimationError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
     class PaymasterError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
     class SignerError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
+    class PredictAddressError(message: String, cause: Throwable? = null) : SmartAccountException(message, cause)
 }
 
 abstract class SmartAccount(
-    protected val credentials: Credentials,
+    protected val signer: Signer,
     protected val bundlerClient: BundlerClient,
     protected val gasPriceProvider: UserOperationGasPriceProvider,
     protected val entryPointAddress: String,
     protected val web3Service: Service,
     protected val paymasterClient: PaymasterClient? = null,
     val accountAddress: String,
-    protected val transactionManager: TransactionManager,
 ) {
 
     protected val web3 = Web3j.build(web3Service)
@@ -81,7 +82,7 @@ abstract class SmartAccount(
             }
         }
 
-        userOperation.signature = getDummySignature()
+        userOperation.signature = signer.getDummySignature()
         val estimateResp = bundlerClient.ethEstimateUserOperationGas(userOperation, entryPointAddress).send()
         userOperation.signature = null
         if (estimateResp.hasError()) {
@@ -94,7 +95,7 @@ abstract class SmartAccount(
         }
 
         if (paymasterClient != null) {
-            userOperation.signature = getDummySignature()
+            userOperation.signature = signer.getDummySignature()
             val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
             userOperation.signature = null
             if (resp.hasError()) {
@@ -117,8 +118,8 @@ abstract class SmartAccount(
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
     fun getNonce(): BigInteger {
-        val entryPointContract = EntryPointContract(transactionManager, entryPointAddress)
-        val nonce = entryPointContract.getNonce(accountAddress)
+        val entryPointContract = EntryPointContract(web3Service, entryPointAddress)
+        val nonce = entryPointContract.getNonce(accountAddress.hexToAddress())
             ?: throw SmartAccountException.Error("Entry point contract ($entryPointAddress) getNonce() returns 0x for account address ($accountAddress)")
         return nonce
     }
@@ -137,5 +138,4 @@ abstract class SmartAccount(
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray
     abstract fun getFactoryAddress(): Address
     abstract fun getFactoryData(): ByteArray
-    abstract fun getDummySignature(): String
 }

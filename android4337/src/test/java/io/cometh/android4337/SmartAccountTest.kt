@@ -9,9 +9,10 @@ import io.cometh.android4337.paymaster.SponsorUserOperation
 import io.cometh.android4337.paymaster.SponsorUserOperationResponse
 import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.safe.TestsData
+import io.cometh.android4337.safe.signer.eoa.EOASigner
+import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
-import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.toHexNoPrefix
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -57,7 +58,7 @@ class SmartAccountTest {
 
         safeAccountWithPaymaster = SafeAccount.fromAddress(
             address = TestsData.account1SafeAddress,
-            credentials = TestsData.account1Credentials,
+            signer = EOASigner(TestsData.account1Credentials),
             bundlerClient = bundlerClient,
             entryPointAddress = entryPointAddress,
             web3Service = web3Service,
@@ -67,7 +68,7 @@ class SmartAccountTest {
         )
         safeAccountWithoutPaymaster = SafeAccount.fromAddress(
             address = TestsData.account2SafeAddress,
-            credentials = TestsData.account2Credentials,
+            signer = EOASigner(TestsData.account2Credentials),
             bundlerClient = bundlerClient,
             entryPointAddress = entryPointAddress,
             web3Service = web3Service,
@@ -76,7 +77,7 @@ class SmartAccountTest {
         )
         safeAccount2 = SafeAccount.fromAddress(
             TestsData.account2SafeAddress,
-            TestsData.account2Credentials,
+            signer = EOASigner(TestsData.account2Credentials),
             bundlerClient = bundlerClient,
             entryPointAddress = entryPointAddress,
             web3Service = web3Service,

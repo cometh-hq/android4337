@@ -5,13 +5,17 @@ import org.web3j.abi.FunctionReturnDecoder
 import org.web3j.abi.TypeReference
 import org.web3j.abi.datatypes.DynamicBytes
 import org.web3j.abi.datatypes.Function
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.DefaultBlockParameterName
-import org.web3j.tx.TransactionManager
+import org.web3j.tx.ClientTransactionManager
 
 class SafeProxyFactoryContract(
-    private val transactionManager: TransactionManager,
+    web3jService: Web3jService,
     private val contractAddress: String
 ) {
+    private val transactionManager = ClientTransactionManager(Web3j.build(web3jService), null)
+
     fun proxyCreationCode(): ByteArray? {
         val outputParams = listOf(object : TypeReference<DynamicBytes>() {})
         val function = Function("proxyCreationCode", mutableListOf(), outputParams)

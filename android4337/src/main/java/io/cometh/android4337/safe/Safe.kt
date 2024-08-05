@@ -63,19 +63,26 @@ object Safe {
         return FunctionEncoder.encode(function).hexToByteArray()
     }
 
-    // multiSend
     fun getMultiSendFunctionData(
         safeModuleSetupAddress: Address,
         safeWebAuthnSharedSignerAddress: Address,
         enableModuleData: ByteArray,
         sharedSignerConfigureData: ByteArray
     ): ByteArray {
-        val encodedMultiSendTxs = encodeMultiSendTransactions(
+        return getMultiSendFunctionData(
             listOf(
                 MultiSendTransaction(1, safeModuleSetupAddress, BigInteger.ZERO, enableModuleData),
-                MultiSendTransaction(1, safeWebAuthnSharedSignerAddress, BigInteger.ZERO, sharedSignerConfigureData)
+                MultiSendTransaction(
+                    1, safeWebAuthnSharedSignerAddress, BigInteger.ZERO, sharedSignerConfigureData
+                )
             )
         )
+    }
+
+    fun getMultiSendFunctionData(
+        transactions: List<MultiSendTransaction>
+    ): ByteArray {
+        val encodedMultiSendTxs = encodeMultiSendTransactions(transactions)
         val inputParams = listOf(DynamicBytes(encodedMultiSendTxs))
         val outputParams = emptyList<TypeReference<*>>()
         val function = Function("multiSend", inputParams, outputParams)
@@ -88,7 +95,11 @@ object Safe {
             val size = it.data.size.toBigInteger()
             AbiEncoder.encodePackedParameters(
                 listOf(
-                    Uint8(it.op.toBigInteger()), it.to, Uint256(it.value ?: BigInteger.ZERO), Uint256(size), DynamicBytes(it.data)
+                    Uint8(it.op.toBigInteger()),
+                    it.to,
+                    Uint256(it.value ?: BigInteger.ZERO),
+                    Uint256(size),
+                    DynamicBytes(it.data)
                 )
             ).removeOx()
         }
@@ -109,8 +120,7 @@ object Safe {
     }
 
     fun getSafeInitializer(
-        owner: Address,
-        config: SafeConfig
+        owner: Address, config: SafeConfig
     ): ByteArray {
         return getSetupFunctionData(
             _owners = listOf(owner),
@@ -124,22 +134,39 @@ object Safe {
         )
     }
 
+    fun getAddOwnerWithThresholdFunctionData(
+        owner: Address,
+        _threshold: BigInteger
+    ): ByteArray {
+        val inputParams = listOf(owner, Uint256(_threshold))
+        val outputParams = emptyList<TypeReference<*>>()
+        val function = Function("addOwnerWithThreshold", inputParams, outputParams)
+        return FunctionEncoder.encode(function).hexToByteArray()
+    }
+
     fun getSafeInitializerWithPasskey(
-        config: SafeConfig,
-        passkey: Passkey
+        config: SafeConfig, passkey: Passkey
     ): ByteArray {
         return getSetupFunctionData(
             _owners = listOf(config.getSafeWebAuthnSharedSignerAddress()),
             _threshold = BigInteger.ONE,
             to = config.getSafeMultiSendAddress(),
             data = getMultiSendFunctionData(
-                safeModuleSetupAddress = config.getSafeModuleSetupAddress(),
-                safeWebAuthnSharedSignerAddress = config.getSafeWebAuthnSharedSignerAddress(),
-                enableModuleData = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress())),
-                sharedSignerConfigureData = getSharedSignerConfigureCallData(
-                    x = passkey.x,
-                    y = passkey.y,
-                    verifiers = config.safeP256VerifierAddress.hexToBigInt()
+                listOf(
+                    MultiSendTransaction(
+                        op = 1,
+                        to = config.getSafeModuleSetupAddress(),
+                        data = getEnableModulesFunctionData(listOf(config.getSafe4337ModuleAddress()))
+                    ),
+                    MultiSendTransaction(
+                        op = 1,
+                        to = config.getSafeWebAuthnSharedSignerAddress(),
+                        data = getSharedSignerConfigureCallData(
+                            x = passkey.x,
+                            y = passkey.y,
+                            verifiers = config.safeP256VerifierAddress.hexToBigInt()
+                        )
+                    )
                 )
             ),
             fallbackHandler = config.getSafe4337ModuleAddress(),

@@ -12,6 +12,7 @@ data class SafeConfig(
     val safeWebAuthnSharedSignerAddress: String,
     val safeMultiSendAddress: String,
     val safeP256VerifierAddress: String,
+    val safeWebauthnSignerFactoryAddress: String,
 ) {
     companion object {
         fun getDefaultConfig(): SafeConfig {
@@ -22,10 +23,12 @@ data class SafeConfig(
                 safeProxyFactoryAddress = "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
                 safeWebAuthnSharedSignerAddress = "0xfD90FAd33ee8b58f32c00aceEad1358e4AFC23f9",
                 safeMultiSendAddress = "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526",
-                safeP256VerifierAddress = "0x445a0683e494ea0c5AF3E83c5159fBE47Cf9e765"
+                safeP256VerifierAddress = "0x445a0683e494ea0c5AF3E83c5159fBE47Cf9e765",
+                safeWebauthnSignerFactoryAddress = "0xF7488fFbe67327ac9f37D5F722d83Fc900852Fbf"
             )
         }
     }
+
     init {
         safeModuleSetupAddress.requireHexAddress()
         safe4337ModuleAddress.requireHexAddress()
@@ -62,6 +65,10 @@ data class SafeConfig(
 
     fun getSafeP256VerifierAddress(): Address {
         return safeP256VerifierAddress.hexToAddress()
+    }
+
+    fun getSafeWebauthnSignerFactoryAddress(): Address {
+        return safeWebauthnSignerFactoryAddress.hexToAddress()
     }
 
 }

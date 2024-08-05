@@ -6,10 +6,6 @@ import java.math.BigInteger
 data class MultiSendTransaction(
     val op: Int,
     val to: Address,
-    val value: BigInteger?,
+    val value: BigInteger? = BigInteger.ZERO,
     val data: ByteArray
-) {
-    init {
-        require(op in 1..2)
-    }
-}
+)

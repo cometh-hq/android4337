@@ -44,8 +44,13 @@ abstract class SmartAccount(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun sendUserOperation(to: Address, value: BigInteger, data: ByteArray): String {
-        val userOperation = prepareUserOperation(to, value, data).apply {
+    fun sendUserOperation(
+        to: Address,
+        value: BigInteger = BigInteger.ZERO,
+        data: ByteArray,
+        delegateCall: Boolean = false
+    ): String {
+        val userOperation = prepareUserOperation(to, value, data, delegateCall).apply {
             signature = signOperation(this, entryPointAddress).toHex()
         }
         val result = bundlerClient.ethSendUserOperation(userOperation, entryPointAddress).send()
@@ -60,14 +65,14 @@ abstract class SmartAccount(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun prepareUserOperation(to: Address, value: BigInteger, data: ByteArray): UserOperation {
+    fun prepareUserOperation(to: Address, value: BigInteger, data: ByteArray, delegateCall: Boolean = false): UserOperation {
         val isDeployed = isDeployed()
         val userOperation = UserOperation(
             sender = accountAddress,
             nonce = getNonce().toHex(),
             factory = if (!isDeployed) getFactoryAddress().toChecksumHex() else null,
             factoryData = if (!isDeployed) getFactoryData().toHex() else null,
-            callData = getCallData(to, value, data).toHex(),
+            callData = getCallData(to, value, data, delegateCall).toHex(),
             callGasLimit = "0x0",
             verificationGasLimit = "0x0",
             preVerificationGas = "0x0",
@@ -96,7 +101,8 @@ abstract class SmartAccount(
 
         if (paymasterClient != null) {
             userOperation.signature = signer.getDummySignature()
-            val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
+            val resp =
+                paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
             userOperation.signature = null
             if (resp.hasError()) {
                 throw SmartAccountException.PaymasterError("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")
@@ -135,7 +141,9 @@ abstract class SmartAccount(
     }
 
     abstract fun signOperation(userOperation: UserOperation, entryPointAddress: String): ByteArray
-    abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray
     abstract fun getFactoryAddress(): Address
     abstract fun getFactoryData(): ByteArray
+    abstract fun addOwner(owner: Address): String
+    abstract fun deployAndEnablePasskeySigner(x: BigInteger, y: BigInteger): String
+    abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray, delegateCall: Boolean): ByteArray
 }

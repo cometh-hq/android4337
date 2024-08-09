@@ -231,25 +231,39 @@ To sign user operations, you need a Signer. Android4337 provides two implementat
 
 #### Passkey Signer
 
+Passkeys provide enhanced security and simplify authentication through quick methods like biometrics. Supported by Apple, Google, and Microsoft, they are widely implemented on iOS and Android. Their adoption improves the user experience by making authentication faster and simpler.
+
+On chain contracts use ERC-1271 and WebAuthn standards for verifying WebAuthn signatures with the secp256r1 curve.
+
+
+> [!IMPORTANT]  
+> To enable passkey support for an Android app, you must associate your app with a website.
+> Follow these instructions from the [official Android guide](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal).
+
+> [!IMPORTANT]  
+> When initializing a Safe Account with a Passkey signer it will use the Safe WebAuthn Shared Signer to respect 4337 limitation. For more information have a look at [Safe Documentation](https://github.com/safe-global/safe-modules/tree/main/modules/passkey/contracts/4337#safe-webauthn-shared-signer)
+
+##### Safe WebAuthn Shared Signer
+
+There is one notable caveat when using the passkey module with ERC-4337 specifically, which is that ERC-4337 user operations can only deploy exactly one CREATE2 contract whose address matches the sender of the user operation. This means that deploying both the Safe account and its WebAuthn credential owner in a user operation's initCode is not possible.
+
+In order to by pass this limitation you can use the SafeWebAuthnSharedSigner: a singleton that can be used as a Safe owner.
+
+For more Infos : [Safe passkey module](https://github.com/safe-global/safe-modules/blob/main/modules/passkey/contracts/4337/README.md#overview)
+
 To sign user operations using the Passkey, you need to create a `PasskeySigner` instance and launch the passkey creation user flow.
 
 ```kotlin
-val passkeySigner = PasskeySigner(
-    rpId = "my.rp.id", // must be your package name
-    userName = "user_name",
-    context = context // Android context
-) // will load passkey from SharedPreferences if already created
-
-// must be done before creating SafeAccount, will launch a passkey creation user flow
-// can throw a GetCredentialException (from CredentialsManager) if create_credentials fails
 coroutineScope.launch {
-    passkeySigner.createPasskey() // will create passkey and save it in SharedPreferences
+    // will launch a passkey creation user flow if passkey not created yet, otherwise will use the existing passkey in Shared Preferences
+    // can throw a GetCredentialException (from CredentialsManager) if create_credentials fails
+    val passkeySigner = PasskeySigner.withSharedSigner(
+        context = context, // Android context
+        rpId = "my.rp.id", // must be your package name
+        userName = "user_name",
+    )
+  val passkey = passkeySigner.passkey // returns the passkey if created
 }
-
-// ...
-
-val passkey = passkeySigner.getPasskey() // returns the passkey if created
-
 ```
 
 Then, you can use the `PasskeySigner` instance when creating a Safe Account:
@@ -265,7 +279,42 @@ val safeAccount = SafeAccount.createNewAccount(
 safeAccount.sendUserOperation("TO_ADDRESS", value = BigInteger.ZERO, data = "0x".toByteArray())
 ```
 
-You can check the sample app for a complete example (see [sample]()).
+This will init a safe with a Passkey Signer using the Safe WebAuthn Shared Signer contract as owner.
+When deploying the safe, the Safe WebAuthn Shared Signer will be configured with the x and y of the passkey used.
+
+You can check the sample app for a complete example (see [sample](https://github.com/cometh-hq/android4337/tree/main/example)).
+
+##### Safe WebAuthn Signer
+
+> [!IMPORTANT]  
+> This configuration of Passkey signer should not be used for an undeployed safe, or the signer contract should have already been deployed. Due to 4337 limitations, only one CREATE2 contract should be deployed by the init code. Safe and signer cannot be deployed simultaneously.
+
+```kotlin
+val signer = EOASigner(WalletUtils.loadCredentials("MY_PASSWORD", "MY_PATH"))
+val safeAccount = SafeAccount.createNewAccount(signer, bundlerClient, chainId, rpcService)
+val accountAddress = safeAccount.safeAddress
+
+coroutineScope.launch {
+  val passkeySigner = PasskeySigner.withSigner(
+      context = context,
+      rpId = "my.rp.id",
+      userName = "user_name",
+      web3jService = rpcService, // needed to get signer from the chain
+  )
+  // This will deploy the Safe Webauthn Contract and add its address as the owner of the safe
+  // It can throw a SmartAccountException
+  val userOpHash = safeAccount.deployAndEnablePasskeySigner(passkeySigner.passkey.x, passkeySigner.passkey.y)
+
+  // Create a SafeAccount with the new Passkey Signer
+  val safePassKeyAccount = SafeAccount.fromAddress(
+    address = accountAddress,
+    signer = signer,
+    bundlerClient = bundlerClient,
+    chainId = chainId,
+    web3Service = rpcService,
+  )
+}
+```
 
 ## Dependencies
 

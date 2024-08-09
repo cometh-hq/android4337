@@ -37,5 +37,4 @@ fun BigInteger.toHex(): String = Numeric.toHexString(this.toByteArray())
 fun Address.toChecksumHex(): String = Keys.toChecksumAddress(this.toString())
 fun Address.toBytes(): ByteArray = Numeric.hexStringToByteArray(this.toString())
 
-
-fun Function.encode(): ByteArray = FunctionEncoder.encode(this).hexToByteArray()
+fun Function.encode(): String = FunctionEncoder.encode(this)

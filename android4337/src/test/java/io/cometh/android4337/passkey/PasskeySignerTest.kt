@@ -46,14 +46,17 @@ class PasskeySignerTest {
         val context = mockk<Context>()
         val sharedPrefs = mockk<SharedPreferences>()
         every { context.getSharedPreferences(any(), any()) } returns sharedPrefs
-        every { sharedPrefs.contains(any())} returns false
-        val signer = PasskeySigner(
-            rpId = "cometh",
-            userName = "test",
-            context = context,
-            credentialsApiHelper = credentialsApiHelper,
-            safeConfig = SafeConfig.getDefaultConfig()
-        )
+        every { sharedPrefs.getString("x", any()) } returns "0x79915f5e456812d6361a42d262f812143f51cade901386fff1b3fffc07496af5"
+        every { sharedPrefs.getString("y", any()) } returns "0x59849b7ba0b0326cd6082764521f9a831a499d213092703c6c0d0786eca64118"
+        val signer = runBlocking {
+            PasskeySigner.withSharedSigner(
+                context = context,
+                rpId = "cometh",
+                userName = "test",
+                credentialsApiHelper = credentialsApiHelper,
+                safeConfig = SafeConfig.getDefaultConfig()
+            )
+        }
         val clientDataJSON =
             "0x7b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a22776d3951626c6f47494f6d2d46746b6e565363797a3741765434507335476a52376b65446667674c366649222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a35313733222c2263726f73734f726967696e223a66616c73657d"
         val signature =

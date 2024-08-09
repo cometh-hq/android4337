@@ -18,6 +18,7 @@ import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -132,25 +133,28 @@ class SafeAccountTest {
         """.trimIndent().toInputStream()
         val context = mockk<Context>()
         every { context.getSharedPreferences(any(), any()) } returns mockk()
-        val address = SafeAccount.predictAddress(
-            PasskeySigner(
-                rpId = "rpId",
-                userName = "userName",
-                context = context,
-                passkey = Passkey(
-                    x="0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
-                    y="0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
-                )
-            ),
-            web3Service,
+        val address = runBlocking {
+            SafeAccount.predictAddress(
+                PasskeySigner.withSharedSigner(
+                    rpId = "rpId",
+                    userName = "userName",
+                    context = context,
+                    passkey = Passkey(
+                        x = "0x9e5261b7f1e14fb9f3135053c093e4d95c8ea94fb6e761621f7c2cf13d36ccda".hexToBigInt(),
+                        y = "0xe2190ee5f1ec2959e848c540f7f5d1c843bc45200158f46e6f984d258aae4b6e".hexToBigInt()
+                    )
+                ),
+                web3Service,
 
-        )
+                )
+        }
         assertEquals("0xfF724471DcB34e42C715163B60A0881fAF7a9C96", address)
     }
 
     @Test
     fun getOwners() {
-        val expected = "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002f920a66c2f9760f6fe5f49b289322ddf60f9103"
+        val expected =
+            "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002f920a66c2f9760f6fe5f49b289322ddf60f9103"
         every { httpResponseStub.getResponse(any()) } returns """
             { "jsonrpc": "2.0", "id": 1, "result": "$expected" }
         """.trimIndent().toInputStream()

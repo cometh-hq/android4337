@@ -1,5 +1,6 @@
 package io.cometh.android4337.safe
 
+import android.util.Log
 import androidx.annotation.WorkerThread
 import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.SmartAccount
@@ -42,6 +43,7 @@ import org.web3j.protocol.Web3j
 import org.web3j.protocol.Web3jService
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.tx.ClientTransactionManager
+import org.web3j.tx.exceptions.ContractCallException
 import java.io.IOException
 import java.math.BigInteger
 
@@ -56,12 +58,17 @@ class SafeAccount private constructor(
     private val config: SafeConfig,
     paymasterClient: PaymasterClient? = null,
 ) : SmartAccount(
-    signer, bundlerClient, gasPriceProvider, entryPointAddress, web3Service, paymasterClient, safeAddress
+    signer,
+    bundlerClient,
+    gasPriceProvider,
+    entryPointAddress,
+    web3Service,
+    paymasterClient,
+    safeAddress
 ) {
 
     init {
         safeAddress.requireHexAddress()
-        signer.checkRequirements()
     }
 
     companion object {
@@ -129,11 +136,10 @@ class SafeAccount private constructor(
             val safeInitializer = when (signer) {
                 is EOASigner -> Safe.getSafeInitializer(signer.getAddress().hexToAddress(), config)
                 is PasskeySigner -> {
-                    signer.getPasskey()?.let { passkey ->
+                    signer.passkey.let { passkey ->
                         Safe.getSafeInitializerWithPasskey(config, passkey)
-                    } ?: throw SmartAccountException.PredictAddressError("no passkey available in PasskeySigner")
+                    }
                 }
-
                 else -> throw SmartAccountException.Error("Unsupported signer type")
             }
             val nonce = BigInteger.ZERO
@@ -209,15 +215,15 @@ class SafeAccount private constructor(
         return result.firstOrNull()?.value
     }
 
-    override fun getCallData(to: Address, value: BigInteger, data: ByteArray): ByteArray {
+    override fun getCallData(to: Address, value: BigInteger, data: ByteArray, delegateCall: Boolean): ByteArray {
         val inputParams = listOf(
             to,
             Uint256(value),
             DynamicBytes(data),
-            Uint8(BigInteger.ZERO),
+            Uint8(if (delegateCall) BigInteger.ONE else BigInteger.ZERO),
         )
         val outputParams = listOf(object : TypeReference<Uint256>() {})
-        return Function("executeUserOp", inputParams, outputParams).encode()
+        return Function("executeUserOp", inputParams, outputParams).encode().hexToByteArray()
     }
 
     override fun getFactoryAddress(): Address {
@@ -229,9 +235,10 @@ class SafeAccount private constructor(
             is PasskeySigner -> {
                 Safe.getSafeInitializerWithPasskey(
                     config = config,
-                    passkey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
+                    passkey = signer.passkey
                 )
             }
+
             is EOASigner -> Safe.getSafeInitializer(owner = signer.getAddress().hexToAddress(), config = config)
             else -> throw SmartAccountException.Error("Unsupported signer type")
         }
@@ -241,6 +248,55 @@ class SafeAccount private constructor(
             saltNonce = 0.toBigInteger()
         )
         return createProxyWithNonceData
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
+    override fun addOwner(owner: Address): String {
+        val userOperationHash = sendUserOperation(
+            to = accountAddress.hexToAddress(),
+            data = Safe.getAddOwnerWithThresholdFunctionData(
+                owner = owner,
+                _threshold = BigInteger.ONE
+            )
+        )
+        return userOperationHash
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class)
+    override fun deployAndEnablePasskeySigner(x: BigInteger, y: BigInteger): String {
+        val contract = SafeWebAuthnSignerFactoryContract(web3Service, contractAddress = config.getSafeWebauthnSignerFactoryAddress())
+        val verifiers = config.safeP256VerifierAddress.hexToBigInt()
+        val createSignerData = contract.createSignerFunction(x, y, verifiers).encode().hexToByteArray()
+        val signerAddress = try {
+            contract.getSigner(x, y, verifiers) ?: throw SmartAccountException.Error("Failed to get signer address")
+        } catch (e: ContractCallException) {
+            Log.e("SafeAccount", "Failed to get signer address", e)
+            throw SmartAccountException.Error("Failed to get signer address", e)
+        }
+        val addOwnerData = Safe.getAddOwnerWithThresholdFunctionData(owner = signerAddress, _threshold = BigInteger.ONE)
+        return Safe.getMultiSendFunctionData(
+            listOf(
+                MultiSendTransaction(
+                    op = 0,
+                    to = config.getSafeWebauthnSignerFactoryAddress(),
+                    data = createSignerData
+                ),
+                MultiSendTransaction(
+                    op = 0,
+                    to = accountAddress.hexToAddress(),
+                    data = addOwnerData
+                )
+            )
+        ).let { multiSendData ->
+            sendUserOperation(
+                to = config.getSafeMultiSendAddress(),
+                data = multiSendData,
+                delegateCall = true
+            )
+        }
+
     }
 
     private fun buildSafeJsonEip712V7(

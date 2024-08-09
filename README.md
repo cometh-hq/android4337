@@ -262,7 +262,7 @@ coroutineScope.launch {
         rpId = "my.rp.id", // must be your package name
         userName = "user_name",
     )
-  val passkey = passkeySigner.passkey // returns the passkey if created
+    val passkey = passkeySigner.passkey // returns the passkey if created
 }
 ```
 
@@ -295,24 +295,24 @@ val safeAccount = SafeAccount.createNewAccount(signer, bundlerClient, chainId, r
 val accountAddress = safeAccount.safeAddress
 
 coroutineScope.launch {
-  val passkeySigner = PasskeySigner.withSigner(
-      context = context,
-      rpId = "my.rp.id",
-      userName = "user_name",
-      web3jService = rpcService, // needed to get signer from the chain
-  )
-  // This will deploy the Safe Webauthn Contract and add its address as the owner of the safe
-  // It can throw a SmartAccountException
-  val userOpHash = safeAccount.deployAndEnablePasskeySigner(passkeySigner.passkey.x, passkeySigner.passkey.y)
+    val passkeySigner = PasskeySigner.withSigner(
+        context = context,
+        rpId = "my.rp.id",
+        userName = "user_name",
+        web3jService = rpcService, // needed to get signer from the chain
+    )
+    // This will deploy the Safe Webauthn Contract and add its address as the owner of the safe
+    // It can throw a SmartAccountException
+    val userOpHash = safeAccount.deployAndEnablePasskeySigner(passkeySigner.passkey.x, passkeySigner.passkey.y)
 
-  // Create a SafeAccount with the new Passkey Signer
-  val safePassKeyAccount = SafeAccount.fromAddress(
-    address = accountAddress,
-    signer = signer,
-    bundlerClient = bundlerClient,
-    chainId = chainId,
-    web3Service = rpcService,
-  )
+    // Create a SafeAccount with the new Passkey Signer
+    val safePassKeyAccount = SafeAccount.fromAddress(
+        address = accountAddress,
+        signer = signer,
+        bundlerClient = bundlerClient,
+        chainId = chainId,
+        web3Service = rpcService,
+    )
 }
 ```
 

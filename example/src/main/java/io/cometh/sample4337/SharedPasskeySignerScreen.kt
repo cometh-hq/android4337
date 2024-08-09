@@ -1,6 +1,5 @@
 package io.cometh.sample4337
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,11 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.edit
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.bundler.SimpleBundlerClient
+import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.SafeAccount
 import io.cometh.android4337.safe.signer.passkey.PasskeySigner
 import io.cometh.android4337.utils.hexToAddress
@@ -41,7 +40,7 @@ import org.web3j.protocol.http.HttpService
 import org.web3j.utils.Convert
 
 @Composable
-fun SignUpScreen() {
+fun SharedPasskeySignerScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var signUpResult by remember { mutableStateOf("") }
@@ -53,14 +52,10 @@ fun SignUpScreen() {
     val rpcService = HttpService("https://base-sepolia.g.alchemy.com/v2/UEwp8FtpdjcL5oekF6CjMzxe1D3768XU")
     val bundlerClient = SimpleBundlerClient(HttpService("https://bundler.cometh.io/$chainId/?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx"))
     val credentials = Credentials.create("4bddaeef5fb283e847abf0bd480a771b7695d70f413b248dc56c0bb1bb4a0b86")
-//    val paymasterClient = PaymasterClient("https://paymaster.cometh.io/$chainId?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx")
-    val prefs = context.getSharedPreferences("passkey", Context.MODE_PRIVATE)
+    val paymasterClient = PaymasterClient("https://paymaster.cometh.io/$chainId?apikey=Y3dZHg2cc2qOT9ukzvxZZ7jEloTqx5rx")
 
-    val passkeySigner = PasskeySigner(
-        rpId = "sample4337.cometh.io",
-        userName = "alex",
-        context = context,
-    )
+    val rpId = "sample4337.cometh.io"
+    val userName = "my_user"
 
     Log.i("SignUpScreen", "publicKey=${credentials.address}")
 
@@ -79,8 +74,8 @@ fun SignUpScreen() {
     }
 
     LaunchedEffect(Unit) {
-        val passkey = passkeySigner.getPasskey()
-        if (passkey != null) {
+        if (PasskeySigner.hasSavedPasskey(context, rpId, userName)) {
+            val passkeySigner = PasskeySigner.withSharedSigner(context, rpId, userName)
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     safeAccount = SafeAccount.createNewAccount(
@@ -88,13 +83,12 @@ fun SignUpScreen() {
                         chainId = chainId,
                         web3Service = rpcService,
                         signer = passkeySigner,
-//                        gasPriceProvider = RPCGasEstimator(rpcService),
-//                        paymasterClient = paymasterClient
+                        paymasterClient = paymasterClient
                     )
                     signUpResult = """
                         Passkey Loaded ✅
-                        x=${passkey.x.toHex()}
-                        y=${passkey.y.toHex()}
+                        x=${passkeySigner.passkey.x.toHex()}
+                        y=${passkeySigner.passkey.y.toHex()}
                     """.trimIndent()
                     safeAddress = safeAccount!!.accountAddress
                     Log.i("SignUpScreen", signUpResult)
@@ -109,7 +103,7 @@ fun SignUpScreen() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Sign Up with Passkey")
+        Text(text = "Passkey shared signer")
         Text(text = "PublicKey: ${credentials.address}", fontSize = 12.sp)
         Text(text = "Safe Address: $safeAddress", fontSize = 12.sp)
         Text(text = "Safe Balance: $safeBalance", fontSize = 12.sp)
@@ -117,31 +111,25 @@ fun SignUpScreen() {
         Button(onClick = {
             coroutineScope.launch {
                 try {
-                    passkeySigner.createPasskey()
-                    passkeySigner.getPasskey()?.let { passkey ->
-                        safeAccount = withContext(Dispatchers.IO) {
-                            return@withContext SafeAccount.createNewAccount(
-                                bundlerClient = bundlerClient,
-                                chainId = chainId,
-                                web3Service = rpcService,
-                                signer = passkeySigner,
-//                            paymasterClient = paymasterClient
-                            )
-                        }
-                        signUpResult = """
+                    val passkeySigner = PasskeySigner.withSharedSigner(context, rpId, userName)
+                    val passkey = passkeySigner.passkey
+                    safeAccount = withContext(Dispatchers.IO) {
+                        return@withContext SafeAccount.createNewAccount(
+                            bundlerClient = bundlerClient,
+                            chainId = chainId,
+                            web3Service = rpcService,
+                            signer = passkeySigner,
+                            paymasterClient = paymasterClient
+                        )
+                    }
+                    signUpResult = """
                         Passkey Created ✅
                         x=${passkey.x.toHex()}
                         y=${passkey.y.toHex()}
                     """.trimIndent()
-                        safeAddress = safeAccount!!.accountAddress
+                    safeAddress = safeAccount!!.accountAddress
 
-                        prefs.edit {
-                            putString("x", passkey.x.toHex())
-                            putString("y", passkey.y.toHex())
-                        }
-
-                        Log.i("SignUpScreen", signUpResult)
-                    }
+                    Log.i("SignUpScreen", signUpResult)
                 } catch (e: CreateCredentialException) {
                     signUpResult = "❌ Create Credential Error: ${e.message}"
                     Log.e("SignUpScreen", "Error: ${e.message}", e)

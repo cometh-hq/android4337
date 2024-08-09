@@ -69,7 +69,6 @@ class SafeAccount private constructor(
 
     init {
         safeAddress.requireHexAddress()
-        signer.checkRequirements()
     }
 
     companion object {
@@ -137,11 +136,10 @@ class SafeAccount private constructor(
             val safeInitializer = when (signer) {
                 is EOASigner -> Safe.getSafeInitializer(signer.getAddress().hexToAddress(), config)
                 is PasskeySigner -> {
-                    signer.getPasskey()?.let { passkey ->
+                    signer.passkey.let { passkey ->
                         Safe.getSafeInitializerWithPasskey(config, passkey)
-                    } ?: throw SmartAccountException.PredictAddressError("no passkey available in PasskeySigner")
+                    }
                 }
-
                 else -> throw SmartAccountException.Error("Unsupported signer type")
             }
             val nonce = BigInteger.ZERO
@@ -237,9 +235,10 @@ class SafeAccount private constructor(
             is PasskeySigner -> {
                 Safe.getSafeInitializerWithPasskey(
                     config = config,
-                    passkey = signer.getPasskey() ?: throw SmartAccountException.Error("cannot happened")
+                    passkey = signer.passkey
                 )
             }
+
             is EOASigner -> Safe.getSafeInitializer(owner = signer.getAddress().hexToAddress(), config = config)
             else -> throw SmartAccountException.Error("Unsupported signer type")
         }
@@ -267,7 +266,7 @@ class SafeAccount private constructor(
     @WorkerThread
     @Throws(SmartAccountException::class)
     override fun deployAndEnablePasskeySigner(x: BigInteger, y: BigInteger): String {
-        val contract = SafeWebAuthnSignerFactoryContract(web3Service, contractAddress = config.safeWebauthnSignerFactoryAddress)
+        val contract = SafeWebAuthnSignerFactoryContract(web3Service, contractAddress = config.getSafeWebauthnSignerFactoryAddress())
         val verifiers = config.safeP256VerifierAddress.hexToBigInt()
         val createSignerData = contract.createSignerFunction(x, y, verifiers).encode().hexToByteArray()
         val signerAddress = try {

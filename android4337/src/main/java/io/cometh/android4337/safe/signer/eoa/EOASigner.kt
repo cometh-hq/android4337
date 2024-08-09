@@ -15,10 +15,6 @@ class EOASigner(
         return Sign.signMessage(data, credentials.ecKeyPair, false).toByteArray()
     }
 
-    override fun checkRequirements() {
-        // nothing to do
-    }
-
     override fun getDummySignature(): String {
         return ECDSA_DUMMY_SIGNATURE
     }

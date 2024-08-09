@@ -1,7 +1,7 @@
 package io.cometh.android4337.safe
 
 import io.cometh.android4337.utils.encode
-import io.cometh.android4337.utils.requireHexAddress
+import io.cometh.android4337.utils.toChecksumHex
 import org.web3j.abi.FunctionReturnDecoder
 import org.web3j.abi.TypeReference
 import org.web3j.abi.datatypes.Address
@@ -16,12 +16,8 @@ import java.math.BigInteger
 
 class SafeWebAuthnSignerFactoryContract(
     web3jService: Web3jService,
-    private val contractAddress: String
+    private val contractAddress: Address
 ) {
-
-    init {
-        contractAddress.requireHexAddress()
-    }
 
     private val transactionManager = ClientTransactionManager(Web3j.build(web3jService), null)
 
@@ -43,7 +39,7 @@ class SafeWebAuthnSignerFactoryContract(
         val result = getSignerFunction(x, y, verifiers).let { fn ->
             fn.encode().let { encodedFn ->
                 val value = transactionManager.sendCall(
-                    contractAddress,
+                    contractAddress.toChecksumHex(),
                     encodedFn,
                     DefaultBlockParameterName.LATEST
                 )

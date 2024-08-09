@@ -9,30 +9,35 @@ import io.cometh.android4337.safe.Safe
 import io.cometh.android4337.safe.Safe.getSignatureBytes
 import io.cometh.android4337.safe.SafeConfig
 import io.cometh.android4337.safe.SafeSignature
+import io.cometh.android4337.safe.SafeWebAuthnSignerFactoryContract
 import io.cometh.android4337.safe.signer.Signer
 import io.cometh.android4337.safe.signer.SignerException
 import io.cometh.android4337.safe.signer.passkey.credentials.GetCredentialAuthenticationResponse
 import io.cometh.android4337.safe.signer.passkey.credentials.getPublicKeyCoordinates
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
+import io.cometh.android4337.utils.toChecksumHex
 import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.web3j.AbiEncoder
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
+import okio.IOException
 import org.web3j.abi.DefaultFunctionEncoder
+import org.web3j.abi.datatypes.Address
 import org.web3j.abi.datatypes.DynamicBytes
 import org.web3j.abi.datatypes.generated.StaticArray2
 import org.web3j.abi.datatypes.generated.Uint256
 import org.web3j.abi.datatypes.generated.Uint48
+import org.web3j.protocol.Web3jService
 import java.math.BigInteger
 import java.security.SecureRandom
 
-class PasskeySigner(
+class PasskeySigner private constructor(
     private val rpId: String,
     private val userName: String,
-    private val context: Context,
-    private val credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
-    private val safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
-    passkey: Passkey? = null
+    private val signerAddress: Address,
+    val passkey: Passkey,
+    private val credentialsApiHelper: CredentialsApiHelper,
 ) : Signer {
 
     val DUMMY_AUTHENTICATOR_DATA = "0xfefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe04fefefefe"
@@ -41,53 +46,95 @@ class PasskeySigner(
         "padding":"This pads the clientDataJSON so that we can leave room for additional implementation specific fields for a more accurate 'preVerificationGas' estimate."
     """.trimIndent()
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("passkey-$rpId-$userName", Context.MODE_PRIVATE)
+    companion object {
 
-    private var _passkey: Passkey? = passkey
+        fun hasSavedPasskey(context: Context, rpId: String, userName: String): Boolean {
+            return getSharedPrefs(rpId, userName, context).getOrCreatePasskey() != null
+        }
+
+        /**
+         * @throws CreateCredentialException
+         */
+        suspend fun withSharedSigner(
+            context: Context,
+            rpId: String,
+            userName: String,
+            safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
+            passkey: Passkey? = null,
+            credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
+        ): PasskeySigner {
+            getOrCreatePasskey(passkey, rpId, userName, context, credentialsApiHelper).let {
+                return PasskeySigner(rpId, userName, safeConfig.getSafeWebAuthnSharedSignerAddress(), it, credentialsApiHelper)
+            }
+        }
+
+        suspend fun createPasskey(rpId: String, userName: String, credentialsApiHelper: CredentialsApiHelper): Passkey {
+            val createResponse = credentialsApiHelper.createCredential(
+                rpId = rpId,
+                rpName = "",
+                userId = userName,
+                userName = userName,
+                challenge = SecureRandom().generateSeed(32)
+            )
+            val (x, y) = createResponse.response.getPublicKeyCoordinates()
+            return Passkey(x, y)
+        }
+
+
+        private fun getSharedPrefs(rpId: String, userName: String, context: Context): SharedPreferences {
+            return context.getSharedPreferences("passkey-$rpId-$userName", Context.MODE_PRIVATE)
+        }
+
+        /**
+         * @throws SignerException, CreateCredentialException
+         */
+        suspend fun withSigner(
+            rpId: String,
+            userName: String,
+            context: Context,
+            safeConfig: SafeConfig = SafeConfig.getDefaultConfig(),
+            web3jService: Web3jService,
+            credentialsApiHelper: CredentialsApiHelper = CredentialsApiHelper(context),
+            passkey: Passkey? = null
+        ): PasskeySigner {
+            getOrCreatePasskey(passkey, rpId, userName, context, credentialsApiHelper).let {
+                val factoryContract = SafeWebAuthnSignerFactoryContract(web3jService, safeConfig.getSafeWebauthnSignerFactoryAddress())
+                val address = coroutineScope {
+                    try {
+                        factoryContract.getSigner(it.x, it.y, safeConfig.safeP256VerifierAddress.hexToBigInt())
+                    } catch (e: IOException) {
+                        throw SignerException("Failed to get signer address", e)
+                    }
+                } ?: throw SignerException("Failed to get signer address")
+                return PasskeySigner(rpId, userName, address, it, credentialsApiHelper)
+            }
+        }
+
+        private suspend fun getOrCreatePasskey(
+            passkey: Passkey?,
+            rpId: String,
+            userName: String,
+            context: Context,
+            credentialsApiHelper: CredentialsApiHelper
+        ): Passkey {
+            var _passkey = passkey
+            if (_passkey == null) {
+                val sharedPrefs = getSharedPrefs(rpId, userName, context)
+                _passkey = sharedPrefs.getOrCreatePasskey()
+                if (_passkey == null) {
+                    _passkey = createPasskey(rpId, userName, credentialsApiHelper)
+                    sharedPrefs.savePasskey(_passkey)
+                }
+            }
+            return _passkey
+        }
+
+    }
 
     init {
         require(rpId.isNotEmpty()) { "rpId must be set" }
         require(userName.isNotEmpty()) { "userName must be set" }
-        if (_passkey == null && hasSavedPasskey()) loadPasskey()
     }
-
-
-    private fun loadPasskey() {
-        val x = prefs.getString("x", null)!!.hexToBigInt()
-        val y = prefs.getString("y", null)!!.hexToBigInt()
-        _passkey = Passkey(x, y)
-    }
-
-    private fun hasSavedPasskey(): Boolean {
-        return prefs.contains("x") && prefs.contains("y")
-    }
-
-    /**
-     * @throws CreateCredentialException
-     */
-    suspend fun createPasskey() {
-        require(!hasSavedPasskey()) { "passkey already created for rpId=${rpId} and userName=${userName}" }
-        require(_passkey == null) { "passkey already loaded" }
-        require(userName.isNotEmpty()) { "userName must be set" }
-        val createResponse = credentialsApiHelper.createCredential(
-            rpId = rpId,
-            rpName = "",
-            userId = userName,
-            userName = userName,
-            challenge = SecureRandom().generateSeed(32)
-        )
-        val (x, y) = createResponse.response.getPublicKeyCoordinates()
-        _passkey = Passkey(x, y)
-        savePasskeyInPrefs()
-    }
-
-    private fun savePasskeyInPrefs() {
-        prefs.edit {
-            putString("x", _passkey!!.x.toHex())
-            putString("y", _passkey!!.y.toHex())
-        }
-    }
-
 
     override fun sign(data: ByteArray): ByteArray {
         val authResponse = try {
@@ -111,7 +158,7 @@ class PasskeySigner(
         return Safe.buildSignatureBytes(
             listOf(
                 SafeSignature(
-                    signer = safeConfig.safeWebAuthnSharedSignerAddress.lowercase(),
+                    signer = signerAddress.toChecksumHex().lowercase(),
                     data = "0x$passkeySignature",
                     dynamic = true
                 )
@@ -119,15 +166,11 @@ class PasskeySigner(
         ).hexToByteArray()
     }
 
-    override fun checkRequirements() {
-        requireNotNull(_passkey) { "PasskeySigner must have a pass key created or imported" }
-    }
-
     override fun getDummySignature(): String {
         val signature = Safe.buildSignatureBytes(
             listOf(
                 SafeSignature(
-                    signer = safeConfig.safeWebAuthnSharedSignerAddress,
+                    signer = signerAddress.toChecksumHex(),
                     data = getSignatureBytes(
                         DUMMY_AUTHENTICATOR_DATA.toByteArray(),
                         DUMMY_CLIENT_DATA_FIELDS,
@@ -147,10 +190,6 @@ class PasskeySigner(
             )
         )
     }
-
-    fun getPasskey(): Passkey? {
-        return _passkey
-    }
 }
 
 fun GetCredentialAuthenticationResponse.extractClientDataFields(): ByteArray? {
@@ -158,4 +197,18 @@ fun GetCredentialAuthenticationResponse.extractClientDataFields(): ByteArray? {
     val matchResult = Regex("""^\{"type":"webauthn.get","challenge":"[A-Za-z0-9\-_]{43}",(.*)\}$""").find(dataFields) ?: return null
     val fields = matchResult.groupValues[1]
     return fields.toByteArray()
+}
+
+private fun SharedPreferences.savePasskey(passkey: Passkey) {
+    edit {
+        putString("x", passkey.x.toHex())
+        putString("y", passkey.y.toHex())
+    }
+}
+
+private fun SharedPreferences.getOrCreatePasskey(): Passkey? {
+    val x = getString("x", null)?.hexToBigInt()
+    val y = getString("y", null)?.hexToBigInt()
+    if (x == null || y == null) return null
+    return Passkey(x, y)
 }

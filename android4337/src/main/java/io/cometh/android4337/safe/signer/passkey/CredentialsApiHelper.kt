@@ -46,7 +46,7 @@ class CredentialsApiHelper(
             requestJson = createJsonFor(
                 rpId = rpId,
                 rpName = rpName,
-                userId = userId,
+                userId = userId.toByteArray().encodeBase64(),
                 userName = userName,
                 challenge = challenge
             ),

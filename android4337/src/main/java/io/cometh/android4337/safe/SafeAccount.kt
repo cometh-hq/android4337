@@ -161,7 +161,7 @@ class SafeAccount private constructor(
 
     private val transactionManager = ClientTransactionManager(Web3j.build(web3Service), null)
 
-    override fun signOperation(
+    override fun signUserOperation(
         userOperation: UserOperation
     ): ByteArray {
         val validAfter = BigInteger.ZERO

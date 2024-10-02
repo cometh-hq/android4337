@@ -51,7 +51,7 @@ abstract class SmartAccount(
         delegateCall: Boolean = false
     ): String {
         val userOperation = prepareUserOperation(to, value, data, delegateCall).apply {
-            signature = signOperation(this).toHex()
+            signature = signUserOperation(this).toHex()
         }
         val result = bundlerClient.ethSendUserOperation(userOperation, entryPointAddress).send()
         if (result.hasError()) {
@@ -140,7 +140,7 @@ abstract class SmartAccount(
         return result.code != "0x"
     }
 
-    abstract fun signOperation(userOperation: UserOperation): ByteArray
+    abstract fun signUserOperation(userOperation: UserOperation): ByteArray
     abstract fun getFactoryAddress(): Address
     abstract fun getFactoryData(): ByteArray
     abstract fun addOwner(owner: Address): String

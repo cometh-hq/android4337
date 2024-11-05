@@ -180,7 +180,7 @@ class SafeAccountTest {
             maxFeePerGas = "0x02ee7c55e2",
             maxPriorityFeePerGas = "0x1f2ecf7f",
         )
-        val signature = safeAccount2.signOperation(userOperation, EntryPointContract.ENTRY_POINT_ADDRESS_V7)
+        val signature = safeAccount2.signUserOperation(userOperation)
         val expected =
             "0x000000000000000000000000298adde4bafae7cf44a9bf2a1881a836716592c85ac5f6445e673647d6cc907e3af6d065c591f07173e83246ef649147b0034bf119da693c4025be55206e9db91c"
         assertEquals(expected, signature.toHex())
@@ -198,7 +198,7 @@ class SafeAccountTest {
             maxFeePerGas = "0x02ee7c55e2",
             maxPriorityFeePerGas = "0x1f2ecf7f",
         )
-        val signature = safeAccount2.signOperation(userOperation, EntryPointContract.ENTRY_POINT_ADDRESS_V7)
+        val signature = safeAccount2.signUserOperation(userOperation)
     }
 
     @Test(expected = IllegalArgumentException::class)

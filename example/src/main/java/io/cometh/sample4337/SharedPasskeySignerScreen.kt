@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
+import io.cometh.android4337.TransactionParams
 import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.SafeAccount
@@ -47,6 +48,7 @@ fun SharedPasskeySignerScreen() {
     var safeAddress by remember { mutableStateOf("") }
     var safeBalance by remember { mutableStateOf("") }
     var safeAccount: SafeAccount? by remember { mutableStateOf(null) }
+    var multisendResult by remember { mutableStateOf("") }
 
     val chainId = 84532
     val rpcService = HttpService("https://base-sepolia.g.alchemy.com/v2/UEwp8FtpdjcL5oekF6CjMzxe1D3768XU")
@@ -175,6 +177,51 @@ fun SharedPasskeySignerScreen() {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = signUpResult, fontSize = 12.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = {
+            coroutineScope.launch {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val userOpHash = safeAccount!!.sendUserOperation(
+                            listOf(
+                                TransactionParams(
+                                    to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103",
+                                    value = "0x0",
+                                    data = "0xaaaa"
+                                ),
+                                TransactionParams(
+                                    to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103",
+                                    value = "0x0",
+                                    data = "0xaaaa"
+                                )
+                            )
+                        )
+                        multisendResult = """
+                            User Operation Sent ✅
+                            UserOpHash: $userOpHash
+                        """.trimIndent()
+                        Log.i("SignUpScreen", multisendResult)
+                    } catch (e: SmartAccountException) {
+                        multisendResult = when {
+                            e is SmartAccountException.InvalidSignatureError -> {
+                                "❌ Invalid Signature Error: ${e.message}"
+                            }
+
+                            e is SmartAccountException.SignerError && e.cause is GetCredentialException -> {
+                                "❌ Get Credential Error: ${e.message}"
+                            }
+
+                            else -> "❌ Error: ${e.message}"
+                        }
+                        Log.e("SignUpScreen", "Error: ${e.message}", e)
+                    }
+                }
+            }
+        }) {
+            Text(text = "Send Multi User Operations")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = multisendResult, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

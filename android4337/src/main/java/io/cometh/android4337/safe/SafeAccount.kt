@@ -5,6 +5,7 @@ import androidx.annotation.WorkerThread
 import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.SmartAccount
 import io.cometh.android4337.SmartAccountException
+import io.cometh.android4337.TransactionParams
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.RPCGasEstimator
@@ -198,6 +199,25 @@ class SafeAccount private constructor(
             )
         )
         return signature.hexToByteArray()
+    }
+
+    fun sendUserOperation(transactionParams: List<TransactionParams>): String {
+        return Safe.getMultiSendFunctionData(
+            transactionParams.map {
+                MultiSendTransaction(
+                    1, // delegatecall
+                    it.to.hexToAddress(),
+                    it.value.hexToBigInt(),
+                    it.data.hexToByteArray()
+                )
+            }
+        ).let { multiSendData ->
+            sendUserOperation(
+                to = config.getSafeMultiSendAddress(),
+                data = multiSendData,
+                delegateCall = true
+            )
+        }
     }
 
     @WorkerThread

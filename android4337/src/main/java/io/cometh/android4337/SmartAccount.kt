@@ -146,4 +146,6 @@ abstract class SmartAccount(
     abstract fun addOwner(owner: Address): String
     abstract fun deployAndEnablePasskeySigner(x: BigInteger, y: BigInteger): String
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray, delegateCall: Boolean): ByteArray
+    abstract fun signMessage(message: String): ByteArray
+    abstract fun isValidSignature(message: String, signature: ByteArray): Boolean
 }

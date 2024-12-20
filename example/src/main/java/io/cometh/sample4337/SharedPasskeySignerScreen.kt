@@ -49,6 +49,7 @@ fun SharedPasskeySignerScreen() {
     var safeBalance by remember { mutableStateOf("") }
     var safeAccount: SafeAccount? by remember { mutableStateOf(null) }
     var multisendResult by remember { mutableStateOf("") }
+    var messageResult by remember { mutableStateOf("") }
 
     val chainId = 84532
     val rpcService = HttpService("https://base-sepolia.g.alchemy.com/v2/UEwp8FtpdjcL5oekF6CjMzxe1D3768XU")
@@ -58,8 +59,6 @@ fun SharedPasskeySignerScreen() {
 
     val rpId = "sample4337.cometh.io"
     val userName = "my_user"
-
-    Log.i("SignUpScreen", "publicKey=${credentials.address}")
 
     LaunchedEffect(safeAddress) {
         coroutineScope.launch {
@@ -93,6 +92,7 @@ fun SharedPasskeySignerScreen() {
                         y=${passkeySigner.passkey.y.toHex()}
                     """.trimIndent()
                     safeAddress = safeAccount!!.accountAddress
+                    Log.i("SignUpScreen", "accountAddress=$safeAddress")
                     Log.i("SignUpScreen", signUpResult)
                 }
             }
@@ -222,6 +222,33 @@ fun SharedPasskeySignerScreen() {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = multisendResult, fontSize = 12.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = {
+            coroutineScope.launch {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val message = "0xaaaa"
+                        val signature = safeAccount!!.signMessage(message)
+                        val signatureHex = signature.toHex()
+                        Log.i("SignUpScreen", "signature=$signatureHex")
+                        val isValidSignature = safeAccount!!.isValidSignature(message, signature)
+                        messageResult = """
+                            Message signed ✅
+                            Signature: $signatureHex
+                            isValidSignature: $isValidSignature
+                        """.trimIndent()
+                        Log.i("SignUpScreen", messageResult)
+                    } catch (e: SmartAccountException) {
+                        messageResult = "❌ Error: ${e.message}"
+                        Log.e("SignUpScreen", "Error: ${e.message}", e)
+                    }
+                }
+            }
+        }) {
+            Text(text = "Sign Message")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = messageResult, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

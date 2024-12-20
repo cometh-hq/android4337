@@ -215,5 +215,12 @@ class SafeAccountTest {
         )
     }
 
+    @Test
+    fun signMessage() {
+        val message = "0xaaaa"
+        val signature = safeAccount1.signMessage(message)
+        val expected = "0x496d9eb4a63e929644c4b2812cb589b6c0f71f234e3799ba05893e8907f4367f40648de25b570a46559aa07927efa67a04e665652a19685121e870038003b30c1c"
+        assertEquals(expected, signature.toHex())
+    }
 
 }

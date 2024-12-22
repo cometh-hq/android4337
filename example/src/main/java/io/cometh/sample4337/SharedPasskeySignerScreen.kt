@@ -61,6 +61,8 @@ fun SharedPasskeySignerScreen() {
     val rpId = "sample4337.cometh.io"
     val userName = "my_user"
 
+    Log.i("SignUpScreen", "credentials.address=${credentials.address}")
+
     LaunchedEffect(safeAddress) {
         coroutineScope.launch {
             withContext(Dispatchers.IO) {

@@ -151,7 +151,7 @@ class ConnectApi(
 
     suspend fun isValidSignature(
         walletAddress: String, message: String, signature: String, chainId: Int
-    ): ApiResult<Boolean> {
+    ): ApiResult<IsValidSignatureResponse> {
         val requestBody = objectMapper.writeValueAsString(
             IsValidSignatureRequest(
                 chainId = chainId.toString(), message = message, signature = signature
@@ -160,7 +160,7 @@ class ConnectApi(
 
         val request = Request.Builder().url("$baseUrl/wallet/is-valid-signature/$walletAddress").post(requestBody).build()
 
-        return executeRequest(request, IsValidSignatureResponse::class.java).map { it.result }
+        return executeRequest(request, IsValidSignatureResponse::class.java)
     }
 }
 

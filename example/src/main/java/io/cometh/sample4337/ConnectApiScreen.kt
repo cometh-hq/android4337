@@ -128,8 +128,9 @@ fun ConnectApiScreen() {
                     publicKeyX = "0x123456",
                     publicKeyY = "0x123456",
                     deviceData = DeviceData(
-                        deviceId = "123456",
-                        deviceType = "Android",
+                        browser = "",
+                        os = "Android",
+                        platform = "Mobile",
                     ),
                     signerAddress = walletAddress,
                     isSharedWebAuthnSigner = true

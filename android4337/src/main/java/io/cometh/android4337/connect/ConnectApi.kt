@@ -13,7 +13,11 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 
-data class DeviceData(val deviceType: String, val deviceId: String)
+data class DeviceData(
+    val browser: String,
+    val os: String,
+    val platform: String,
+)
 data class GetPasskeySignersByWalletAddressResponse(val success: Boolean = false, val webAuthnSigners: List<WebAuthnSigner> = emptyList())
 data class WebAuthnSigner(
     val _id: String = "",

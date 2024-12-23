@@ -24,6 +24,7 @@ import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.TransactionParams
+import io.cometh.android4337.UserOperationReceiptPoller
 import io.cometh.android4337.bundler.SimpleBundlerClient
 import io.cometh.android4337.paymaster.PaymasterClient
 import io.cometh.android4337.safe.SafeAccount
@@ -59,6 +60,8 @@ fun SharedPasskeySignerScreen() {
 
     val rpId = "sample4337.cometh.io"
     val userName = "my_user"
+
+    Log.i("SignUpScreen", "credentials.address=${credentials.address}")
 
     LaunchedEffect(safeAddress) {
         coroutineScope.launch {
@@ -154,6 +157,11 @@ fun SharedPasskeySignerScreen() {
                         signUpResult = """
                             User Operation Sent ✅
                             UserOpHash: $userOpHash
+                        """.trimIndent()
+                        val receipt = UserOperationReceiptPoller(bundlerClient).waitForReceipt(userOpHash)
+                        signUpResult += """
+                            User Operation Receipt ✅
+                            Receipt: status=${receipt?.receipt?.status}
                         """.trimIndent()
                         Log.i("SignUpScreen", signUpResult)
                     } catch (e: SmartAccountException) {

@@ -207,7 +207,7 @@ class SafeAccount private constructor(
         return Safe.getMultiSendFunctionData(
             transactionParams.map {
                 MultiSendTransaction(
-                    1, // delegatecall
+                    if (it.delegateCall) 1 else 0,
                     it.to.hexToAddress(),
                     it.value.hexToBigInt(),
                     it.data.hexToByteArray()

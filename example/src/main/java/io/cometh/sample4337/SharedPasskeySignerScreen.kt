@@ -150,9 +150,9 @@ fun SharedPasskeySignerScreen() {
                 withContext(Dispatchers.IO) {
                     try {
                         val userOpHash = safeAccount!!.sendUserOperation(
-                            to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103".hexToAddress(),
-                            value = 0.toBigInteger(),
-                            data = "0xaaaa".hexToByteArray()
+                            to = "0x036CbD53842c5426634e7929541eC2318f3dCF7e".hexToAddress(),
+                            value = "0".toBigInteger(),
+                            data = "0xa9059cbb0000000000000000000000001461b092bd06f2b757d7c369b36356133f002dab00000000000000000000000000000000000000000000000000000000000f4240".hexToByteArray()
                         )
                         signUpResult = """
                             User Operation Sent ✅
@@ -193,9 +193,9 @@ fun SharedPasskeySignerScreen() {
                         val userOpHash = safeAccount!!.sendUserOperation(
                             listOf(
                                 TransactionParams(
-                                    to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103",
+                                    to = "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
                                     value = "0x0",
-                                    data = "0xaaaa"
+                                    data = "0xa9059cbb0000000000000000000000001461b092bd06f2b757d7c369b36356133f002dab00000000000000000000000000000000000000000000000000000000000f4240"
                                 ),
                                 TransactionParams(
                                     to = "0x2f920a66C2f9760f6fE5F49b289322Ddf60f9103",

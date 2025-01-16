@@ -6,7 +6,8 @@ import io.cometh.android4337.utils.requireHexAddress
 data class TransactionParams(
     val to: String,
     val value: String,
-    val data: String
+    val data: String,
+    val delegateCall: Boolean = false,
 ) {
     init {
         to.requireHexAddress()

@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             var tabIndex by remember { mutableStateOf(0) }
-            val tabs = listOf("Shared Signer", "Deployed Signer", "Connect Api")
+            val tabs = listOf("Shared Signer", "Deployed Signer", "Connect", "Recovery")
             Android4337Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Surface(modifier = Modifier.padding(top = 32.dp)) {
@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
                             0 -> SharedPasskeySignerScreen()
                             1 -> PasskeySignerScreen()
                             2 -> ConnectApiScreen()
+                            3 -> RecoveryModuleScreen()
                         }
                     }
                 }

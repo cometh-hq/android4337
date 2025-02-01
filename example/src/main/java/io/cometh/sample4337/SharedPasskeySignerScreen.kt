@@ -255,8 +255,5 @@ fun SharedPasskeySignerScreen() {
         }) {
             Text(text = "Sign Message")
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = messageResult, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }

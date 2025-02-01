@@ -21,8 +21,10 @@ import io.cometh.android4337.utils.encode
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.hexToBigInt
 import io.cometh.android4337.utils.hexToByteArray
+import io.cometh.android4337.utils.isDeployed
 import io.cometh.android4337.utils.requireHex
 import io.cometh.android4337.utils.requireHexAddress
+import io.cometh.android4337.utils.toChecksumHex
 import io.cometh.android4337.utils.toHex
 import io.cometh.android4337.web3j.AbiEncoder
 import io.cometh.android4337.web3j.Create2
@@ -451,5 +453,76 @@ class SafeAccount private constructor(
         return json
     }
 
+    fun predictDelayModuleAddress(recoveryModuleConfig: RecoveryModuleConfig = RecoveryModuleConfig()): String {
+        return DelayModule.predictAddress(safeAddress.hexToAddress(), recoveryModuleConfig)
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
+    fun enableRecoveryModule(guardianAddress: Address, recoveryModuleConfig: RecoveryModuleConfig = RecoveryModuleConfig()): String {
+        val delayAddress = DelayModule.predictAddress(safeAddress.hexToAddress(), recoveryModuleConfig)
+        val isDelayModuleDeployed = web3.isDeployed(delayAddress)
+        if (isDelayModuleDeployed) {
+            throw SmartAccountException.Error("Recovery module already enabled")
+        }
+        val initializer = DelayModule.setUpFunctionData(recoveryModuleConfig, safeAddress.hexToAddress())
+        val transactionParams = listOf(
+            TransactionParams(
+                to = recoveryModuleConfig.moduleFactoryAddress,
+                value = "0x0",
+                data = DelayModuleFactory.deployModuleFunctionData(
+                    recoveryModuleConfig.delayModuleAddress.hexToAddress(),
+                    initializer,
+                    safeAddress.hexToAddress()
+                )
+            ),
+            TransactionParams(
+                to = safeAddress,
+                value = "0x0",
+                data = Safe.enableModuleFunctionData(delayAddress.hexToAddress())
+            ),
+            TransactionParams(
+                to = delayAddress,
+                value = "0x0",
+                data = Safe.enableModuleFunctionData(guardianAddress)
+            )
+        )
+        return sendUserOperation(transactionParams)
+    }
+
+    @WorkerThread
+    @Throws(IOException::class)
+    fun getCurrentGuardian(delayAddress: Address): Address? {
+        val SENTINEL_MODULES = "0x0000000000000000000000000000000000000001"
+        val modulesPaginated = DelayModule.getModulesPaginated(
+            web3Service,
+            contractAddress = delayAddress,
+            start = SENTINEL_MODULES.hexToAddress(),
+            pageSize = 1000
+        )
+        return modulesPaginated.getOrNull(0)
+    }
+
+    @WorkerThread
+    @Throws(IOException::class)
+    fun isRecoveryStarted(delayAddress: Address): Boolean {
+        val txNonce = DelayModule.txNonce(web3Service, delayAddress)
+        val queueNonce = DelayModule.queueNonce(web3Service, delayAddress)
+        return queueNonce > txNonce
+    }
+
+    @WorkerThread
+    @Throws(SmartAccountException::class, IOException::class)
+    fun cancelRecovery(delayAddress: Address): String {
+        val isDeployed = web3.isDeployed(delayAddress.toChecksumHex())
+        if (!isDeployed) throw SmartAccountException.Error("Delay module not deployed")
+        val isRecoveryStarted = isRecoveryStarted(delayAddress)
+        if (!isRecoveryStarted) throw SmartAccountException.Error("There is no recovery started")
+        val txNonce = DelayModule.txNonce(web3Service, delayAddress)
+        return sendUserOperation(
+            to = delayAddress,
+            data = DelayModule.setTxNonceFunctionData(txNonce.plus(BigInteger.ONE)).hexToByteArray(),
+        )
+    }
 
 }

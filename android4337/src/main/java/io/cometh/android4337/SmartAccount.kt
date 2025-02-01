@@ -101,8 +101,7 @@ abstract class SmartAccount(
 
         if (paymasterClient != null) {
             userOperation.signature = signer.getDummySignature()
-            val resp =
-                paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
+            val resp = paymasterClient.pmSponsorUserOperation(userOperation, entryPointAddress).send()
             userOperation.signature = null
             if (resp.hasError()) {
                 throw SmartAccountException.PaymasterError("Paymaster cannot sponsor user operation, code: ${resp.error!!.code} ${resp.error.message}")

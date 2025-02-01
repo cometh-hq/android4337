@@ -233,4 +233,11 @@ object Safe {
         }${encodeUint256(s)}" + "${encodeBytes(authenticatorData)}${encodeBytes(clientDataFieldsBytes)}"
     }
 
+    fun enableModuleFunctionData(moduleAddress: Address): String {
+        val inputParams = listOf(moduleAddress)
+        val outputParams = emptyList<TypeReference<*>>()
+        val function = Function("enableModule", inputParams, outputParams)
+        return FunctionEncoder.encode(function)
+    }
+
 }

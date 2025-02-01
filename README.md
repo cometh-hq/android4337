@@ -316,6 +316,37 @@ coroutineScope.launch {
 }
 ```
 
+### Recovery module
+
+#### Enable Recovery Module
+
+Android4337 provides a high-level API to enable the recovery module for a Safe Account.
+
+Here is the API we provide:
+
+```kotlin
+fun enableRecoveryModule(guardianAddress: Address, recoveryModuleConfig: RecoveryModuleConfig = RecoveryModuleConfig()): String
+fun getCurrentGuardian(delayAddress: Address): Address?
+fun isRecoveryStarted(delayAddress: Address): Boolean
+fun cancelRecovery(delayAddress: Address): String
+```
+
+- enableRecoveryModule: Enables the recovery module for the safe account by passing the guardian address and the recovery module configuration.
+- getCurrentGuardian: Returns the current guardian address (if any) for the delay module.
+- isRecoveryStarted: Returns true if the recovery process has started.
+- cancelRecovery: Cancels the recovery process (if any).
+
+`RecoveryModuleConfig` describes the configuration used for the recovery module, we provides default values:
+
+```kotlin
+data class RecoveryModuleConfig(
+    val moduleFactoryAddress: String = "0x000000000000aDdB49795b0f9bA5BC298cDda236",
+    val delayModuleAddress: String = "0xd54895B1121A2eE3f37b502F507631FA1331BED6",
+    val recoveryCooldown: Int = 86400,
+    val recoveryExpiration: Int = 604800,
+)
+```
+
 ## Dependencies
 
 Android4337 is built on top of [web3j](https://github.com/hyperledger/web3j), an excellent Java (Android compatible) library for working with web3.

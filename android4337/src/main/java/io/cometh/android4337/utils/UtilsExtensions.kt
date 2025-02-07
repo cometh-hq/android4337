@@ -2,10 +2,16 @@ package io.cometh.android4337.utils
 
 import android.util.Base64
 import org.web3j.abi.FunctionEncoder
+import org.web3j.abi.FunctionReturnDecoder
 import org.web3j.abi.datatypes.Address
 import org.web3j.abi.datatypes.Function
+import org.web3j.abi.datatypes.Type
 import org.web3j.crypto.Keys
 import org.web3j.crypto.Sign.SignatureData
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.Web3jService
+import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.tx.ClientTransactionManager
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 
@@ -35,6 +41,22 @@ fun BigInteger.toHexNoPrefix(): String = Numeric.toHexStringNoPrefix(this.toByte
 fun BigInteger.toHex(): String = Numeric.toHexString(this.toByteArray())
 
 fun Address.toChecksumHex(): String = Keys.toChecksumAddress(this.toString())
+fun Address.toChecksumHexNoPrefix(): String = Keys.toChecksumAddress(this.toString()).removeOx()
 fun Address.toBytes(): ByteArray = Numeric.hexStringToByteArray(this.toString())
 
 fun Function.encode(): String = FunctionEncoder.encode(this)
+
+fun Int.requirePositive() = require(this > 0) { "Not positive: $this" }
+
+fun Function.send(web3jService: Web3jService, contractAddress: Address): List<Type<Any>> {
+    val data = FunctionEncoder.encode(this)
+    val transactionManager = ClientTransactionManager(Web3j.build(web3jService), null)
+    val value = transactionManager.sendCall(contractAddress.toChecksumHex(), data, DefaultBlockParameterName.LATEST)
+    return FunctionReturnDecoder.decode(value, this.outputParameters)
+}
+
+fun Web3j.isDeployed(address: String): Boolean {
+    address.requireHexAddress()
+    val result = ethGetCode(address, DefaultBlockParameterName.LATEST).send()
+    return !result.hasError() && result.code != "0x"
+}

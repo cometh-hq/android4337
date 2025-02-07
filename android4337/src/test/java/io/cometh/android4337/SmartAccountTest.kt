@@ -107,10 +107,10 @@ class SmartAccountTest {
     @Test
     fun prepareUserOperationWithAccountDeployed() {
         // returns nonce 3
-        mockGetNonce()
-        mockEthGetCode("0x1")
-        mockGasEstimateGetGasPrice()
-        mockBundlerEstimateUserOperation()
+        mockGetNonce(httpResponseStub)
+        mockEthGetCode(httpResponseStub, "0x1")
+        mockGasEstimateGetGasPrice(gasPriceProvider)
+        mockBundlerEstimateUserOperation(httpResponseStub)
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
             to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexToAddress(),
@@ -137,10 +137,10 @@ class SmartAccountTest {
     @Test
     fun prepareUserOperationWithAccountDeployedAndNoData() {
         // returns nonce 3
-        mockGetNonce()
-        mockEthGetCode("0x1")
-        mockGasEstimateGetGasPrice()
-        mockBundlerEstimateUserOperation()
+        mockGetNonce(httpResponseStub)
+        mockEthGetCode(httpResponseStub, "0x1")
+        mockGasEstimateGetGasPrice(gasPriceProvider)
+        mockBundlerEstimateUserOperation(httpResponseStub)
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
             to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexToAddress(),
@@ -167,10 +167,10 @@ class SmartAccountTest {
 
     @Test
     fun prepareUserOperationWithAccountNotDeployed() {
-        mockGetNonce(3)
-        mockEthGetCode("0x")
-        mockGasEstimateGetGasPrice()
-        mockBundlerEstimateUserOperation()
+        mockGetNonce(httpResponseStub, 3)
+        mockEthGetCode(httpResponseStub, "0x")
+        mockGasEstimateGetGasPrice(gasPriceProvider)
+        mockBundlerEstimateUserOperation(httpResponseStub)
 
         val userOperation = safeAccountWithoutPaymaster.prepareUserOperation(
             to = "0xF64DA4EFa19b42ef2f897a3D533294b892e6d99E".hexToAddress(),
@@ -199,11 +199,11 @@ class SmartAccountTest {
 
     @Test
     fun prepareUserOperationWithPaymaster() {
-        mockGetNonce(3)
-        mockEthGetCode("0x1")
-        mockGasEstimateGetGasPrice()
-        mockBundlerEstimateUserOperation()
-        mockPaymasterSponsorUserOperation()
+        mockGetNonce(httpResponseStub, 3)
+        mockEthGetCode(httpResponseStub, "0x1")
+        mockGasEstimateGetGasPrice(gasPriceProvider)
+        mockBundlerEstimateUserOperation(httpResponseStub)
+        mockPaymasterSponsorUserOperation(paymasterClient)
 
         val userOperation = safeAccountWithPaymaster.prepareUserOperation(
             to = "0x0338Dcd5512ae8F3c481c33Eb4b6eEdF632D1d2f".hexToAddress(),
@@ -233,25 +233,29 @@ class SmartAccountTest {
         )
     }
 
-    private fun mockGasEstimateGetGasPrice(
-        maxFeePerGas: String = "0x01e3fb094e",
-        maxPriorityFeePerGas: String = "0x53cd81aa"
-    ) {
-        every { gasPriceProvider.getGasPrice() } returns GasPrice(
-            maxFeePerGas = maxFeePerGas.hexToBigInt(),
-            maxPriorityFeePerGas = maxPriorityFeePerGas.hexToBigInt()
-        )
-    }
+}
 
-    private fun mockBundlerEstimateUserOperation(
-        preVerificationGas: String = "0xEC2C",
-        verificationGasLimit: String = "0x45BCA",
-        callGasLimit: String = "0x2F44"
-    ) {
+fun mockGasEstimateGetGasPrice(
+    gasPriceProvider: UserOperationGasPriceProvider,
+    maxFeePerGas: String = "0x01e3fb094e",
+    maxPriorityFeePerGas: String = "0x53cd81aa"
+) {
+    every { gasPriceProvider.getGasPrice() } returns GasPrice(
+        maxFeePerGas = maxFeePerGas.hexToBigInt(),
+        maxPriorityFeePerGas = maxPriorityFeePerGas.hexToBigInt()
+    )
+}
 
-        every {
-            httpResponseStub.getResponse(match { it.contains("eth_estimateUserOperationGas") })
-        } returns """
+fun mockBundlerEstimateUserOperation(
+    httpResponseStub: HttpResponseStub,
+    preVerificationGas: String = "0xEC2C",
+    verificationGasLimit: String = "0x45BCA",
+    callGasLimit: String = "0x2F44"
+) {
+
+    every {
+        httpResponseStub.getResponse(match { it.contains("eth_estimateUserOperationGas") })
+    } returns """
             {
                 "jsonrpc": "2.0",
                 "id": 1,
@@ -262,54 +266,60 @@ class SmartAccountTest {
                 }
             }
         """.trimIndent().toInputStream()
-    }
+}
 
-    private fun mockGetNonce(nonce: Int = 3) {
-        every {
-            httpResponseStub.getResponse(match { it.contains("eth_call") })
-        } returns """
+fun mockGetNonce(
+    httpResponseStub: HttpResponseStub,
+    nonce: Int = 3
+) {
+    every {
+        httpResponseStub.getResponse(match { it.contains("eth_call") })
+    } returns """
                 {
                     "jsonrpc": "2.0",
                     "id": 1,
                     "result": "0x${nonce.toBigInteger().toHexNoPrefix().padStart(64, '0')}"
                 }
             """.trimIndent().toInputStream()
-    }
+}
 
-    private fun mockEthGetCode(ethGetCodeResult: String) {
-        every { httpResponseStub.getResponse(match { it.contains("eth_getCode") }) } returns """
+fun mockEthGetCode(
+    httpResponseStub: HttpResponseStub,
+    ethGetCodeResult: String
+) {
+    every { httpResponseStub.getResponse(match { it.contains("eth_getCode") }) } returns """
             {
                 "jsonrpc": "2.0",
                 "id": 1,
                 "result": "$ethGetCodeResult"
             }
         """.trimIndent().toInputStream()
-    }
-
-    private fun mockPaymasterSponsorUserOperation(
-        paymaster: String = "0x4685d9587a7F72Da32dc323bfFF17627aa632C61",
-        paymasterAndData: String = "0xDFF7FA1077Bce740a6a212b3995990682c0Ba66d000000000000000000000000000000000000000000000000000000006672ce7100000000000000000000000000000000000000000000000000000000000000000e499f53c85c53cd4f1444b807e380c6a01a412d7e1cfd24b6153debb97cbc986e6809dff8c005ed94c32bf1d5e722b9f40b909fc89d8982f2f99cb7a91b19f01c",
-        paymasterVerificationGasLimit: String = "0x4e09",
-        paymasterPostOpGasLimit: String = "0x1",
-        preVerificationGas: String = "0xef1c",
-        verificationGasLimit: String = "0x1b247",
-        callGasLimit: String = "0x163a2",
-    ) {
-        val sponsorRq = mockk<Request<Any, SponsorUserOperationResponse>>()
-        every { sponsorRq.send() } returns SponsorUserOperationResponse().apply {
-            result = SponsorUserOperation(
-                paymaster,
-                paymasterAndData,
-                paymasterVerificationGasLimit,
-                paymasterPostOpGasLimit,
-                preVerificationGas,
-                verificationGasLimit,
-                callGasLimit
-            )
-        }
-        every { paymasterClient.pmSponsorUserOperation(any(), any()) } returns sponsorRq
-    }
-
-
 }
+
+fun mockPaymasterSponsorUserOperation(
+    paymasterClient: PaymasterClient,
+    paymaster: String = "0x4685d9587a7F72Da32dc323bfFF17627aa632C61",
+    paymasterAndData: String = "0xDFF7FA1077Bce740a6a212b3995990682c0Ba66d000000000000000000000000000000000000000000000000000000006672ce7100000000000000000000000000000000000000000000000000000000000000000e499f53c85c53cd4f1444b807e380c6a01a412d7e1cfd24b6153debb97cbc986e6809dff8c005ed94c32bf1d5e722b9f40b909fc89d8982f2f99cb7a91b19f01c",
+    paymasterVerificationGasLimit: String = "0x4e09",
+    paymasterPostOpGasLimit: String = "0x1",
+    preVerificationGas: String = "0xef1c",
+    verificationGasLimit: String = "0x1b247",
+    callGasLimit: String = "0x163a2",
+) {
+    val sponsorRq = mockk<Request<Any, SponsorUserOperationResponse>>()
+    every { sponsorRq.send() } returns SponsorUserOperationResponse().apply {
+        result = SponsorUserOperation(
+            paymaster,
+            paymasterAndData,
+            paymasterVerificationGasLimit,
+            paymasterPostOpGasLimit,
+            preVerificationGas,
+            verificationGasLimit,
+            callGasLimit
+        )
+    }
+    every { paymasterClient.pmSponsorUserOperation(any(), any()) } returns sponsorRq
+}
+
+
 

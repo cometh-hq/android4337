@@ -110,7 +110,7 @@ fun RecoveryModuleScreen() {
         Button(onClick = {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
-                    val signature = safeAccount!!.enableRecoveryModule(
+                    val signature = safeAccount!!.enableRecovery(
                         guardianAddress = "0x2f920a66c2f9760f6fe5f49b289322ddf60f9103".hexToAddress(),
                     )
                 }

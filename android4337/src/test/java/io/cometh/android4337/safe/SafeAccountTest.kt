@@ -4,6 +4,7 @@ import android.content.Context
 import io.cometh.android4337.CustomHttpService
 import io.cometh.android4337.EntryPointContract
 import io.cometh.android4337.HttpResponseStub
+import io.cometh.android4337.SmartAccountException
 import io.cometh.android4337.UserOperation
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.bundler.SimpleBundlerClient
@@ -226,18 +227,18 @@ class SafeAccountTest {
         assertEquals(expected, signature.toHex())
     }
 
-    @Test(expected = Error::class)
-    fun enableRecoveryModule_alreadyEnabled() {
+    @Test(expected = SmartAccountException::class)
+    fun enableRecovery_alreadyEnabled() {
         every { httpResponseStub.getResponse(any()) } returns """
             { "jsonrpc": "2.0", "id": 1, "result": "0xabcd" }
         """.trimIndent().toInputStream()
-        safeAccount1.enableRecoveryModule(
+        safeAccount1.enableRecovery(
             guardianAddress = "0x2f920a66c2f9760f6fe5f49b289322ddf60f9103".hexToAddress(),
         )
     }
 
     @Test
-    fun enableRecoveryModule() {
+    fun enableRecovery() {
         val delayIsDeployedResp = """{ "jsonrpc": "2.0", "id": 1, "result": "0x" }""".toIS()
         val accountIsDeployedResp = """{ "jsonrpc": "2.0", "id": 1, "result": "0xaaaa" }""".toIS()
         every {
@@ -253,7 +254,7 @@ class SafeAccountTest {
             httpResponseStub.getResponse(match { it.contains("eth_sendUserOperation") })
         } returns sendUserOpResp
 
-        safeAccount1.enableRecoveryModule(
+        safeAccount1.enableRecovery(
             guardianAddress = "0x2f920a66c2f9760f6fe5f49b289322ddf60f9103".hexToAddress(),
         )
 
@@ -277,7 +278,7 @@ class SafeAccountTest {
     "paymasterPostOpGasLimit" : "0x1",
     "paymasterData" : "0xDFF7FA1077Bce740a6a212b3995990682c0Ba66d000000000000000000000000000000000000000000000000000000006672ce7100000000000000000000000000000000000000000000000000000000000000000e499f53c85c53cd4f1444b807e380c6a01a412d7e1cfd24b6153debb97cbc986e6809dff8c005ed94c32bf1d5e722b9f40b909fc89d8982f2f99cb7a91b19f01c"
   }, "0x0000000071727De22E5E9d8BAf0edAc6f37da032" ],
-  "id" : 4
+  "id" : 5
 }""".trimIndent().replace("\n", "").replace(" ", "")
             )
         }

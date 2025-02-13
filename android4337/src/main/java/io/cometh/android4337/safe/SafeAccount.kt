@@ -459,7 +459,7 @@ class SafeAccount private constructor(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun enableRecoveryModule(guardianAddress: Address, recoveryModuleConfig: RecoveryModuleConfig = RecoveryModuleConfig()): String {
+    override fun enableRecovery(guardianAddress: Address, recoveryModuleConfig: RecoveryModuleConfig): String {
         val delayAddress = DelayModule.predictAddress(safeAddress.hexToAddress(), recoveryModuleConfig)
         val isDelayModuleDeployed = web3.isDeployed(delayAddress)
         if (isDelayModuleDeployed) {
@@ -492,7 +492,7 @@ class SafeAccount private constructor(
 
     @WorkerThread
     @Throws(IOException::class)
-    fun getCurrentGuardian(delayAddress: Address): Address? {
+    override fun getCurrentGuardian(delayAddress: Address): Address? {
         val SENTINEL_MODULES = "0x0000000000000000000000000000000000000001"
         val modulesPaginated = DelayModule.getModulesPaginated(
             web3Service,
@@ -505,7 +505,7 @@ class SafeAccount private constructor(
 
     @WorkerThread
     @Throws(IOException::class)
-    fun isRecoveryStarted(delayAddress: Address): Boolean {
+    override fun isRecoveryStarted(delayAddress: Address): Boolean {
         val txNonce = DelayModule.txNonce(web3Service, delayAddress)
         val queueNonce = DelayModule.queueNonce(web3Service, delayAddress)
         return queueNonce > txNonce
@@ -513,7 +513,7 @@ class SafeAccount private constructor(
 
     @WorkerThread
     @Throws(SmartAccountException::class, IOException::class)
-    fun cancelRecovery(delayAddress: Address): String {
+    override fun cancelRecovery(delayAddress: Address): String {
         val isDeployed = web3.isDeployed(delayAddress.toChecksumHex())
         if (!isDeployed) throw SmartAccountException.Error("Delay module not deployed")
         val isRecoveryStarted = isRecoveryStarted(delayAddress)

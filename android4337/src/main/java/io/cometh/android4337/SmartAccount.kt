@@ -4,6 +4,7 @@ import androidx.annotation.WorkerThread
 import io.cometh.android4337.bundler.BundlerClient
 import io.cometh.android4337.gasprice.UserOperationGasPriceProvider
 import io.cometh.android4337.paymaster.PaymasterClient
+import io.cometh.android4337.safe.RecoveryModuleConfig
 import io.cometh.android4337.safe.signer.Signer
 import io.cometh.android4337.utils.hexToAddress
 import io.cometh.android4337.utils.requireHexAddress
@@ -147,4 +148,10 @@ abstract class SmartAccount(
     abstract fun getCallData(to: Address, value: BigInteger, data: ByteArray, delegateCall: Boolean): ByteArray
     abstract fun signMessage(message: String): ByteArray
     abstract fun isValidSignature(message: String, signature: ByteArray): Boolean
+
+    // recovery module
+    abstract fun enableRecovery(guardianAddress: Address, recoveryModuleConfig: RecoveryModuleConfig = RecoveryModuleConfig()): String
+    abstract fun getCurrentGuardian(delayAddress: Address): Address?
+    abstract fun isRecoveryStarted(delayAddress: Address): Boolean
+    abstract fun cancelRecovery(delayAddress: Address): String
 }

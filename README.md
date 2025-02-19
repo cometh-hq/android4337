@@ -349,6 +349,29 @@ data class RecoveryModuleConfig(
 
 You can override the default values by providing your own `RecoveryModuleConfig`.
 
+### Connect API
+
+Android4337 provides seamless integration of the Connect API for 4337.
+Here are the features we provide:
+
+```kotlin
+const apiKey = "your_api_key"
+val connectApi = ConnectApi(apiKey)
+val result = connectApi.initWallet(chainId, smartAccountAddress, initiatorAddress, publicKeyId, publicKeyX, publicKeyY, deviceData)
+//...
+val result = connectApi.createWebAuthnSigner(chainId, walletAddress, publicKeyId, publicKeyX, publicKeyY, deviceData, signerAddress, isSharedWebAuthnSigner)
+//...
+val result = connectApi.getPasskeySignersByWalletAddress(walletAddress)
+//...
+val result = connectApi.isValidSignature(walletAddress, message, signature, chainId)
+```
+
+- **initWallet**: Initialize a smart account.
+- **getPasskeySignersByWalletAddress**: Get the list of passkey signers for a given wallet address.
+- **createWebAuthnSigner**: Create the webauthn signer for a given wallet address and public key.
+- **isValidSignature**: Check if a signature is valid for a given message.
+
+
 ## Dependencies
 
 Android4337 is built on top of [web3j](https://github.com/hyperledger/web3j), an excellent Java (Android compatible) library for working with web3.
